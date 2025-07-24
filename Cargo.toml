@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bevy = { version = "0.16", default-features = false, features = ["bevy_core_pipeline", "bevy_winit", "std", "x11"] }
+bevy = { version = "0.16", default-features = false, features = ["bevy_pbr", "bevy_gizmos", "bevy_winit", "std", "x11"] }
+clap = { version = "4.5", features = ["derive"] }
