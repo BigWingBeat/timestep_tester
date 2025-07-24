@@ -2,6 +2,7 @@ use bevy::{
     color::{ColorCurve, palettes::tailwind},
     math::DVec3,
     prelude::*,
+    render::view::RenderLayers,
 };
 
 #[derive(Resource)]
@@ -56,6 +57,14 @@ pub fn plugin(app: &mut App) {
 }
 
 fn spawn(mut commands: Commands) {
+    const RENDER_LAYER: usize = 0;
+
+    commands.spawn((
+        Camera3d::default(),
+        RenderLayers::layer(RENDER_LAYER),
+        Transform::from_xyz(-100.0, 150.0, 150.0).looking_at(Vec3::new(0.0, 30.0, 0.0), Vec3::Y),
+    ));
+
     commands.insert_resource(Parameters {
         sigma: 10.0,
         rho: 28.0,
@@ -64,6 +73,7 @@ fn spawn(mut commands: Commands) {
 
     commands.spawn((
         Trajectory(DVec3::new(2.0, 1.0, 1.0)),
+        RenderLayers::layer(RENDER_LAYER),
         Colours::new(
             [
                 tailwind::SKY_500.into(),
