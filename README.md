@@ -26,6 +26,11 @@ From most-to-least framerate dependent:
 - Interpolate with previous value
 - Extrapolate to future value
 
+## Safety measures for lag
+
+- None
+- Cap sim rate (slow down)
+
 ## Frequency configurations
 
 Render framerate in FPS, simulation update rate in Hz
@@ -35,10 +40,14 @@ Render framerate in FPS, simulation update rate in Hz
 - Sim slightly slower (60 FPS / 56 Hz)
 - Sim much slower (60 FPS / 24 Hz)
 
-## Safety measures for lag
+## Render presentation modes
 
-- None
-- Cap sim rate (slow down)
+| Presentation Mode | Input Latency | Screen Tearing | Framerate capped by Refresh Rate |
+|-|-|-|-|
+| Fifo ("vsync") | Yes | No | Yes |
+| FifoRelaxed ("adaptive vsync") | Yes | Yes | Yes |
+| Immediate | No | Yes | No |
+| Mailbox ("fast vsync") | No | No | No |
 
 ## Behaviour with a laggy simulation
 
