@@ -1,7 +1,9 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, window::PresentMode};
 use clap::{Parser, ValueEnum};
 
+mod configuration;
 mod lorenz_attractor;
+mod mouse_cursor;
 mod moving_box;
 
 #[derive(Clone, Copy, ValueEnum)]
@@ -18,7 +20,18 @@ struct Args {
 fn main() -> AppExit {
     let args = Args::parse();
     App::new()
-        .add_plugins(DefaultPlugins)
-        .add_plugins((lorenz_attractor::plugin, moving_box::plugin))
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                present_mode: PresentMode::Mailbox,
+                ..default()
+            }),
+            ..default()
+        }))
+        .add_plugins((
+            configuration::plugin,
+            lorenz_attractor::plugin,
+            mouse_cursor::plugin,
+            moving_box::plugin,
+        ))
         .run()
 }

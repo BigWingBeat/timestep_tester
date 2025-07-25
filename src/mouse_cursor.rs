@@ -1,0 +1,175 @@
+use bevy::{
+    color::palettes::basic,
+    input::mouse::{AccumulatedMouseMotion, MouseMotion},
+    prelude::*,
+    render::view::RenderLayers,
+    window::PrimaryWindow,
+};
+
+#[derive(Component)]
+struct WindowCursorPosition;
+
+#[derive(Component)]
+struct CursorMovedEventPosition;
+
+#[derive(Component)]
+#[require(DeltaInitialised)]
+struct CursorMovedEventDelta;
+
+#[derive(Component)]
+#[require(DeltaInitialised)]
+struct MouseMotionEvent;
+
+#[derive(Component)]
+#[require(DeltaInitialised)]
+struct AccumulatedMouseMotionRes;
+
+#[derive(Component, Default)]
+struct DeltaInitialised(u8);
+
+#[derive(Component)]
+struct Offset(Vec2);
+
+const Z: f32 = 1.0;
+
+pub fn plugin(app: &mut App) {
+    app.add_systems(Startup, spawn).add_systems(
+        Update,
+        (
+            initialise_deltas,
+            window_cursor_position,
+            cursor_moved_event,
+            mouse_motion_event,
+            accumulated_mouse_motion,
+        ),
+    );
+}
+
+fn spawn(mut commands: Commands) {
+    const RENDER_LAYER: usize = 1;
+
+    const CURSOR_BOX_SIZE: f32 = 16.0;
+
+    commands.spawn((
+        WindowCursorPosition,
+        Offset(Vec2::new(8.0, 8.0)),
+        RenderLayers::layer(RENDER_LAYER),
+        Sprite::from_color(basic::YELLOW, Vec2::splat(CURSOR_BOX_SIZE)),
+    ));
+
+    commands.spawn((
+        CursorMovedEventPosition,
+        Offset(Vec2::new(-8.0, 8.0)),
+        RenderLayers::layer(RENDER_LAYER),
+        Sprite::from_color(basic::AQUA, Vec2::splat(CURSOR_BOX_SIZE)),
+    ));
+
+    commands.spawn((
+        CursorMovedEventDelta,
+        Offset(Vec2::new(8.0, -8.0)),
+        RenderLayers::layer(RENDER_LAYER),
+        Sprite::from_color(basic::FUCHSIA, Vec2::splat(CURSOR_BOX_SIZE)),
+    ));
+
+    commands.spawn((
+        MouseMotionEvent,
+        Offset(Vec2::new(-8.0, -8.0)),
+        RenderLayers::layer(RENDER_LAYER),
+        Sprite::from_color(basic::WHITE, Vec2::splat(CURSOR_BOX_SIZE)),
+    ));
+
+    commands.spawn((
+        AccumulatedMouseMotionRes,
+        Offset(Vec2::new(-24.0, -24.0)),
+        RenderLayers::layer(RENDER_LAYER),
+        Sprite::from_color(basic::BLACK, Vec2::splat(CURSOR_BOX_SIZE)),
+    ));
+}
+
+fn initialise_deltas(
+    mut cursors: Query<(&mut Transform, &Offset, &mut DeltaInitialised)>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
+    mut events: EventReader<CursorMoved>,
+) {
+    let something_frame = events.read().any(|event| event.delta.is_some());
+
+    let Some(position) = window.cursor_position() else {
+        return;
+    };
+
+    let position = camera.0.viewport_to_world_2d(camera.1, position).unwrap();
+
+    for (mut cursor, offset, mut init) in cursors.iter_mut() {
+        match (init.0, something_frame) {
+            (0, true) => init.0 = 1,
+            (1, _) => {
+                cursor.translation = (position + offset.0).extend(Z);
+                init.0 = 2
+            }
+            _ => {}
+        }
+    }
+}
+
+fn window_cursor_position(
+    mut cursor: Single<(&mut Transform, &Offset), With<WindowCursorPosition>>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
+) {
+    let Some(position) = window.cursor_position() else {
+        return;
+    };
+
+    let position = camera.0.viewport_to_world_2d(camera.1, position).unwrap();
+    cursor.0.translation = (position + cursor.1.0).extend(Z);
+}
+
+fn cursor_moved_event(
+    mut cursor_pos: Single<
+        (&mut Transform, &Offset),
+        (
+            With<CursorMovedEventPosition>,
+            Without<CursorMovedEventDelta>,
+        ),
+    >,
+    mut cursor_delta: Single<
+        (&mut Transform, &Offset),
+        (
+            With<CursorMovedEventDelta>,
+            Without<CursorMovedEventPosition>,
+        ),
+    >,
+    mut events: EventReader<CursorMoved>,
+    camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
+) {
+    for event in events.read() {
+        let position = camera
+            .0
+            .viewport_to_world_2d(camera.1, event.position)
+            .unwrap();
+        cursor_pos.0.translation = (position + cursor_pos.1.0).extend(Z);
+
+        if let Some(delta) = event.delta {
+            cursor_delta.0.translation += delta.reflect(Vec2::Y).extend(0.0);
+        } else {
+            // cursor_delta.0.translation = (position + cursor_delta.1.0).extend(0.0);
+        }
+    }
+}
+
+fn mouse_motion_event(
+    mut cursor: Single<(&mut Transform, &Offset), With<MouseMotionEvent>>,
+    mut events: EventReader<MouseMotion>,
+) {
+    for event in events.read() {
+        cursor.0.translation += event.delta.reflect(Vec2::Y).extend(0.0);
+    }
+}
+
+fn accumulated_mouse_motion(
+    mut cursor: Single<(&mut Transform, &Offset), With<AccumulatedMouseMotionRes>>,
+    accumulated_mouse_motion: Res<AccumulatedMouseMotion>,
+) {
+    cursor.0.translation += accumulated_mouse_motion.delta.reflect(Vec2::Y).extend(0.0);
+}
