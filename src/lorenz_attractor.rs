@@ -6,7 +6,7 @@ use bevy::{
     render::view::RenderLayers,
 };
 
-use crate::timestep::{DespawnSystems, SimulationDescription, Timestep};
+use crate::configuration::{DespawnSystems, SimulationDescription, Timestep};
 
 #[derive(Resource)]
 pub struct SpawnLorenzAttractor(pub SystemId<In<Timestep>>);

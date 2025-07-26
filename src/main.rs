@@ -29,7 +29,7 @@ fn main() -> AppExit {
             ..default()
         }))
         .add_plugins((
-            timestep::plugin,
+            configuration::plugin,
             lorenz_attractor::plugin,
             mouse_cursor::plugin,
             moving_box::plugin,

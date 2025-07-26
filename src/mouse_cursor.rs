@@ -7,7 +7,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 
-use crate::timestep::{DespawnSystems, SimulationDescription, Timestep};
+use crate::configuration::{DespawnSystems, SimulationDescription, Timestep};
 
 #[derive(Resource)]
 pub struct SpawnMouseCursor(pub SystemId<In<Timestep>>);
