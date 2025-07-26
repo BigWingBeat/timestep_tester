@@ -121,7 +121,7 @@ fn spawn(
     mut commands: Commands,
     mut description: Single<&mut TextSpan, With<SimulationDescription>>,
 ) {
-    **description = "\n\nLorenz Attractor".into();
+    **description = "Lorenz Attractor".into();
 
     commands.spawn((
         Trajectory(DVec3::new(2.0, 1.0, 1.0)),

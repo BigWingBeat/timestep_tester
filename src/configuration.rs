@@ -80,7 +80,9 @@ fn setup(mut commands: Commands) {
         ))
         .with_children(|children| {
             children.spawn((TextSpan::default(), ActiveSimulationDescription));
+            children.spawn(TextSpan::new("\n\n"));
             children.spawn((TextSpan::default(), ActiveTimestepsDescription));
+            children.spawn(TextSpan::new("\n\n"));
             children.spawn((TextSpan::default(), SimulationDescription));
         });
 
@@ -120,8 +122,7 @@ fn respawn(
     ***active_simulation_description = active_sim_text.into_iter().collect();
 
     let mut active_timesteps_text = vec![
-        "\n\nTimestep toggles:",
-        "\n'4': No Delta Time",
+        "Timestep toggles:\n'4': No Delta Time",
         "\n'5': Variable Delta Time",
         "\n'6': Semi-Fixed Timestep",
         "\n'7': Fixed Timestep",
@@ -131,7 +132,7 @@ fn respawn(
     for timestep in ActiveTimesteps::FLAGS
         .iter()
         .filter(|flag| active_timesteps.contains(*flag.value()))
-        .map(|timestep| (timestep.value().bits().ilog2() + 2) as _)
+        .map(|timestep| (timestep.value().bits().ilog2() + 1) as _)
         .rev()
     {
         active_timesteps_text.insert(timestep, " (*)");

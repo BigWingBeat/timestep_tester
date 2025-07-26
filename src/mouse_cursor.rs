@@ -69,7 +69,7 @@ fn spawn(
     mut commands: Commands,
     mut description: Single<&mut TextSpan, With<SimulationDescription>>,
 ) {
-    **description = "\n\nCursor Colours:
+    **description = "Cursor Colours:
 YELLOW: Window::cursor_position & Camera::viewport_to_world_2d
 AQUA: EventReader<CursorMoved>::position & Camera::viewport_to_world_2d
 FUCHSIA: EventReader<CursorMoved>::delta & Vec2::reflect(Vec2::Y)
