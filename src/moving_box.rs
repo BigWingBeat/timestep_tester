@@ -6,7 +6,7 @@ use bevy::{
     render::view::RenderLayers,
 };
 
-use crate::timestep::{DespawnSystems, Timestep};
+use crate::timestep::{DespawnSystems, SimulationDescription, Timestep};
 
 #[derive(Resource)]
 pub struct SpawnMovingBox(pub SystemId<In<Timestep>>);
@@ -73,7 +73,13 @@ fn despawn(mut commands: Commands, boxes: Query<Entity, With<Box>>) {
     }
 }
 
-fn spawn(timestep: In<Timestep>, mut commands: Commands) {
+fn spawn(
+    timestep: In<Timestep>,
+    mut commands: Commands,
+    mut description: Single<&mut TextSpan, With<SimulationDescription>>,
+) {
+    **description = "\n\nMoving box controls: 'A', 'Left', 'D', 'Right'".into();
+
     const BOX_SIZE: f32 = 75.0;
     const MOVING_BOX_SIZE: f32 = 70.0;
 

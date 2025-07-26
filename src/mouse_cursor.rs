@@ -7,7 +7,7 @@ use bevy::{
     window::PrimaryWindow,
 };
 
-use crate::timestep::{DespawnSystems, Timestep};
+use crate::timestep::{DespawnSystems, SimulationDescription, Timestep};
 
 #[derive(Resource)]
 pub struct SpawnMouseCursor(pub SystemId<In<Timestep>>);
@@ -64,7 +64,19 @@ fn despawn(mut commands: Commands, cursors: Query<Entity, With<Offset>>) {
     }
 }
 
-fn spawn(timestep: In<Timestep>, mut commands: Commands) {
+fn spawn(
+    timestep: In<Timestep>,
+    mut commands: Commands,
+    mut description: Single<&mut TextSpan, With<SimulationDescription>>,
+) {
+    **description = "\n\nCursor Colours:
+YELLOW: Window::cursor_position & Camera::viewport_to_world_2d
+AQUA: EventReader<CursorMoved>::position & Camera::viewport_to_world_2d
+FUCHSIA: EventReader<CursorMoved>::delta & Vec2::reflect(Vec2::Y)
+WHITE: EventReader<MouseMotion>::delta & Vec2::reflect(Vec2::Y)
+BLACK: Res<AccumulatedMouseMotion>::delta & Vec2::reflect(Vec2::Y)"
+        .into();
+
     const RENDER_LAYER: usize = 1;
 
     const CURSOR_BOX_SIZE: f32 = 16.0;

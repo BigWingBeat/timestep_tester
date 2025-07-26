@@ -6,7 +6,7 @@ use bevy::{
     render::view::RenderLayers,
 };
 
-use crate::timestep::{DespawnSystems, Timestep};
+use crate::timestep::{DespawnSystems, SimulationDescription, Timestep};
 
 #[derive(Resource)]
 pub struct SpawnLorenzAttractor(pub SystemId<In<Timestep>>);
@@ -116,7 +116,13 @@ fn despawn(mut commands: Commands, trajectories: Query<Entity, With<Trajectory>>
     }
 }
 
-fn spawn(timestep: In<Timestep>, mut commands: Commands) {
+fn spawn(
+    timestep: In<Timestep>,
+    mut commands: Commands,
+    mut description: Single<&mut TextSpan, With<SimulationDescription>>,
+) {
+    **description = "\n\nLorenz Attractor".into();
+
     commands.spawn((
         Trajectory(DVec3::new(2.0, 1.0, 1.0)),
         RenderLayers::layer(RENDER_LAYER),

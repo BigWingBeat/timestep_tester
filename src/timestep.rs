@@ -1,5 +1,5 @@
 use bevy::{ecs::system::SystemId, prelude::*};
-use bitflags::bitflags;
+use bitflags::{Flags, bitflags};
 use num_enum::TryFromPrimitive;
 
 use crate::{
@@ -7,10 +7,10 @@ use crate::{
     moving_box::SpawnMovingBox,
 };
 
-#[derive(Resource, Default)]
+#[derive(Resource, Clone, Copy, Default)]
 enum ActiveSimulation {
     #[default]
-    LorenzAttractor,
+    LorenzAttractor = 1,
     MouseCursor,
     MovingBox,
 }
@@ -25,7 +25,7 @@ pub enum Timestep {
 }
 
 bitflags! {
-    #[derive(Resource)]
+    #[derive(Resource, Clone, Copy)]
     pub struct ActiveTimesteps: u8 {
         const NO_DELTA = 1;
         const VARIABLE_DELTA = 2;
@@ -47,6 +47,15 @@ impl ActiveTimesteps {
     }
 }
 
+#[derive(Component)]
+struct ActiveSimulationDescription;
+
+#[derive(Component)]
+struct ActiveTimestepsDescription;
+
+#[derive(Component)]
+pub struct SimulationDescription;
+
 #[derive(Resource, Default)]
 pub struct DespawnSystems(pub Vec<SystemId>);
 
@@ -54,46 +63,46 @@ pub fn plugin(app: &mut App) {
     app.init_resource::<ActiveSimulation>()
         .init_resource::<ActiveTimesteps>()
         .init_resource::<DespawnSystems>()
-        .add_systems(Startup, spawn)
+        .add_systems(Startup, setup)
         .add_systems(Update, handle_input);
 }
 
-fn spawn(mut commands: Commands) {
-    commands.spawn((
-        Text::new(
-            "Switch active simulation:
-'1': Lorenz Attractor
-'2': Mouse Cursor
-'3': Moving Box
-
-Timestep toggles:
-'4': No Delta Time
-'5': Variable Delta Time
-'6': Semi-Fixed Timestep
-'7': Fixed Timestep
-
-Moving box controls: 'A', 'Left', 'D', 'Right'
-
-Cursor Colours:
-YELLOW: Window::cursor_position & Camera::viewport_to_world_2d
-AQUA: EventReader<CursorMoved>::position & Camera::viewport_to_world_2d
-FUCHSIA: EventReader<CursorMoved>::delta & Vec2::reflect(Vec2::Y)
-WHITE: EventReader<MouseMotion>::delta & Vec2::reflect(Vec2::Y)
-BLACK: Res<AccumulatedMouseMotion>::delta & Vec2::reflect(Vec2::Y)",
-        ),
-        Node {
-            position_type: PositionType::Absolute,
-            top: Val::Px(12.0),
-            left: Val::Px(12.0),
-            ..default()
-        },
-    ));
+fn setup(mut commands: Commands) {
+    commands
+        .spawn((
+            Text::default(),
+            Node {
+                position_type: PositionType::Absolute,
+                top: Val::Px(12.0),
+                left: Val::Px(12.0),
+                ..default()
+            },
+        ))
+        .with_children(|children| {
+            children.spawn((TextSpan::default(), ActiveSimulationDescription));
+            children.spawn((TextSpan::default(), ActiveTimestepsDescription));
+            children.spawn((TextSpan::default(), SimulationDescription));
+        });
 
     commands.run_system_cached(respawn);
 }
 
 fn respawn(
     mut commands: Commands,
+    mut active_simulation_description: Single<
+        &mut TextSpan,
+        (
+            With<ActiveSimulationDescription>,
+            Without<ActiveTimestepsDescription>,
+        ),
+    >,
+    mut active_timesteps_description: Single<
+        &mut TextSpan,
+        (
+            With<ActiveTimestepsDescription>,
+            Without<ActiveSimulationDescription>,
+        ),
+    >,
     active_simulation: Res<ActiveSimulation>,
     active_timesteps: Res<ActiveTimesteps>,
     despawn_systems: Res<DespawnSystems>,
@@ -101,6 +110,35 @@ fn respawn(
     mouse_cursor: Res<SpawnMouseCursor>,
     moving_box: Res<SpawnMovingBox>,
 ) {
+    let mut active_sim_text = vec![
+        "Switch active simulation:\n'1': Lorenz Attractor",
+        "\n'2': Mouse Cursor",
+        "\n'3': Moving Box",
+    ];
+
+    active_sim_text.insert(*active_simulation as _, " (*)");
+    ***active_simulation_description = active_sim_text.into_iter().collect();
+
+    let mut active_timesteps_text = vec![
+        "\n\nTimestep toggles:",
+        "\n'4': No Delta Time",
+        "\n'5': Variable Delta Time",
+        "\n'6': Semi-Fixed Timestep",
+        "\n'7': Fixed Timestep",
+    ];
+
+    // Reverse order so the inserts don't change the correct indexes for later inserts
+    for timestep in ActiveTimesteps::FLAGS
+        .iter()
+        .filter(|flag| active_timesteps.contains(*flag.value()))
+        .map(|timestep| (timestep.value().bits().ilog2() + 2) as _)
+        .rev()
+    {
+        active_timesteps_text.insert(timestep, " (*)");
+    }
+
+    ***active_timesteps_description = active_timesteps_text.into_iter().collect();
+
     for &system in &despawn_systems.0 {
         commands.run_system(system);
     }
