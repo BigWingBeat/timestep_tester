@@ -31,7 +31,7 @@ struct MouseMotionEvent;
 struct AccumulatedMouseMotionRes;
 
 #[derive(Component, Default)]
-struct DeltaInitialised(u8);
+struct DeltaInitialised(bool);
 
 #[derive(Component)]
 struct Offset(Vec2);
@@ -42,7 +42,7 @@ pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup).add_systems(
         Update,
         (
-            initialise_deltas,
+            queue_initialise_deltas,
             window_cursor_position,
             cursor_moved_event,
             mouse_motion_event,
@@ -105,28 +105,25 @@ fn spawn(timestep: In<Timestep>, mut commands: Commands) {
     ));
 }
 
+fn queue_initialise_deltas(mut commands: Commands, mut events: EventReader<CursorMoved>) {
+    let something_frame = events.read().any(|event| event.delta.is_some());
+    if something_frame {
+        commands.run_system_cached(initialise_deltas);
+    }
+}
+
 fn initialise_deltas(
     mut cursors: Query<(&mut Transform, &Offset, &mut DeltaInitialised)>,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
-    mut events: EventReader<CursorMoved>,
 ) {
-    let something_frame = events.read().any(|event| event.delta.is_some());
-
-    let Some(position) = window.cursor_position() else {
-        return;
-    };
-
+    let position = window.cursor_position().unwrap();
     let position = camera.0.viewport_to_world_2d(camera.1, position).unwrap();
 
     for (mut cursor, offset, mut init) in cursors.iter_mut() {
-        match (init.0, something_frame) {
-            (0, true) => init.0 = 1,
-            (1, _) => {
-                cursor.translation = (position + offset.0).extend(Z);
-                init.0 = 2
-            }
-            _ => {}
+        if !init.0 {
+            cursor.translation = (position + offset.0).extend(Z);
+            init.0 = true;
         }
     }
 }
@@ -182,7 +179,7 @@ fn mouse_motion_event(
     mut events: EventReader<MouseMotion>,
 ) {
     for event in events.read() {
-        cursor.0.translation += event.delta.reflect(Vec2::Y).extend(0.0);
+        cursor.0.translation += event.delta.reflect(Vec2::Y).extend(0.0) * 2.0;
     }
 }
 
@@ -190,5 +187,5 @@ fn accumulated_mouse_motion(
     mut cursor: Single<(&mut Transform, &Offset), With<AccumulatedMouseMotionRes>>,
     accumulated_mouse_motion: Res<AccumulatedMouseMotion>,
 ) {
-    cursor.0.translation += accumulated_mouse_motion.delta.reflect(Vec2::Y).extend(0.0);
+    cursor.0.translation += accumulated_mouse_motion.delta.reflect(Vec2::Y).extend(0.0) * 2.0;
 }
