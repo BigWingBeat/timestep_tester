@@ -88,6 +88,8 @@ BLACK: Res<AccumulatedMouseMotion>::delta & Vec2::reflect(Vec2::Y)",
             ..default()
         },
     ));
+
+    commands.run_system_cached(respawn);
 }
 
 fn respawn(
