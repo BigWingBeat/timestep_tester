@@ -60,8 +60,8 @@ pub fn plugin(app: &mut App) {
 fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
     let despawn = commands.register_system(despawn);
     despawns.0.push(despawn);
-    let spawn = SpawnMovingBox(commands.register_system(spawn));
-    commands.insert_resource(spawn);
+    let spawn = commands.register_system(spawn);
+    commands.insert_resource(SpawnMovingBox(spawn));
 
     commands.spawn((Camera2d, RenderLayers::layer(RENDER_LAYER)));
     commands.init_resource::<Input>();

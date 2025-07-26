@@ -94,8 +94,8 @@ pub fn plugin(app: &mut App) {
 fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
     let despawn = commands.register_system(despawn);
     despawns.0.push(despawn);
-    let spawn = SpawnLorenzAttractor(commands.register_system(spawn));
-    commands.insert_resource(spawn);
+    let spawn = commands.register_system(spawn);
+    commands.insert_resource(SpawnLorenzAttractor(spawn));
 
     commands.spawn((
         Camera3d::default(),
