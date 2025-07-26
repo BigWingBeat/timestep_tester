@@ -5,6 +5,7 @@ mod configuration;
 mod lorenz_attractor;
 mod mouse_cursor;
 mod moving_box;
+mod timestep;
 
 #[derive(Clone, Copy, ValueEnum)]
 enum Mode {
@@ -28,7 +29,7 @@ fn main() -> AppExit {
             ..default()
         }))
         .add_plugins((
-            configuration::plugin,
+            timestep::plugin,
             lorenz_attractor::plugin,
             mouse_cursor::plugin,
             moving_box::plugin,

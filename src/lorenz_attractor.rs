@@ -1,9 +1,15 @@
 use bevy::{
     color::{ColorCurve, palettes::tailwind},
+    ecs::system::SystemId,
     math::DVec3,
     prelude::*,
     render::view::RenderLayers,
 };
+
+use crate::timestep::{DespawnSystems, Timestep};
+
+#[derive(Resource)]
+pub struct SpawnLorenzAttractor(pub SystemId<In<Timestep>>);
 
 #[derive(Resource)]
 struct Parameters {
@@ -40,6 +46,33 @@ impl Colours {
         }
     }
 
+    fn from_timestep(timestep: Timestep) -> Self {
+        const INTERP_SECONDS: f32 = 10.0;
+        let colours = match timestep {
+            Timestep::NoDelta => [
+                tailwind::ROSE_500.into(),
+                tailwind::ROSE_900.into(),
+                tailwind::RED_900.into(),
+            ],
+            Timestep::VariableDelta => [
+                tailwind::AMBER_500.into(),
+                tailwind::AMBER_900.into(),
+                tailwind::YELLOW_900.into(),
+            ],
+            Timestep::SemiFixed => [
+                tailwind::SKY_500.into(),
+                tailwind::SKY_900.into(),
+                tailwind::BLUE_900.into(),
+            ],
+            Timestep::Fixed => [
+                tailwind::GREEN_500.into(),
+                tailwind::GREEN_900.into(),
+                tailwind::EMERALD_900.into(),
+            ],
+        };
+        Self::new(colours, INTERP_SECONDS)
+    }
+
     fn push_next(&mut self, dt: f32) {
         self.factor += (self.curve.domain().end() / self.interp_seconds) * dt;
         let new_factor = self.curve.domain().clamp(self.factor);
@@ -52,12 +85,17 @@ impl Colours {
     }
 }
 
+const RENDER_LAYER: usize = 0;
+
 pub fn plugin(app: &mut App) {
-    app.add_systems(Startup, spawn).add_systems(Update, run);
+    app.add_systems(Startup, setup).add_systems(Update, run);
 }
 
-fn spawn(mut commands: Commands) {
-    const RENDER_LAYER: usize = 0;
+fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
+    let despawn = commands.register_system(despawn);
+    despawns.0.push(despawn);
+    let spawn = SpawnLorenzAttractor(commands.register_system(spawn));
+    commands.insert_resource(spawn);
 
     commands.spawn((
         Camera3d::default(),
@@ -70,18 +108,19 @@ fn spawn(mut commands: Commands) {
         rho: 28.0,
         beta: 8.0 / 3.0,
     });
+}
 
+fn despawn(mut commands: Commands, trajectories: Query<Entity, With<Trajectory>>) {
+    for entity in trajectories.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
+fn spawn(timestep: In<Timestep>, mut commands: Commands) {
     commands.spawn((
         Trajectory(DVec3::new(2.0, 1.0, 1.0)),
         RenderLayers::layer(RENDER_LAYER),
-        Colours::new(
-            [
-                tailwind::SKY_500.into(),
-                tailwind::SKY_900.into(),
-                tailwind::BLUE_900.into(),
-            ],
-            10.0,
-        ),
+        Colours::from_timestep(timestep.0),
     ));
 }
 

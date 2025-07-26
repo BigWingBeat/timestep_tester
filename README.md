@@ -15,10 +15,14 @@ Visual fidelity is tested with high-frequency player-controlled motion.
 
 From most-to-least framerate dependent:
 
-- No delta time
-- Variable delta time
-- Semi-fixed timestep
-- Fixed timestep
+- No delta time:
+	- Step simulation once every render frame with a constant delta-time value
+- Variable delta time:
+	- Step simulation once every render frame using `Time::elapsed` as the delta-time value
+- Semi-fixed timestep:
+	- Step simulation 1 or more times every render frame using `min(Time::elapsed, constant)` as the delta-time value
+- Fixed timestep:
+	- Step simulation 0 or more times every render frame with a constant delta-time value
 
 ## Types of Visual Smoothing
 

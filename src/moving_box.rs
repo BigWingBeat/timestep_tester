@@ -1,9 +1,15 @@
 use bevy::{
     color::palettes::basic,
+    ecs::system::SystemId,
     math::bounding::{Aabb2d, IntersectsVolume},
     prelude::*,
     render::view::RenderLayers,
 };
+
+use crate::timestep::{DespawnSystems, Timestep};
+
+#[derive(Resource)]
+pub struct SpawnMovingBox(pub SystemId<In<Timestep>>);
 
 #[derive(Component)]
 struct Box(Aabb2d);
@@ -44,25 +50,41 @@ impl Input {
     }
 }
 
+const RENDER_LAYER: usize = 1;
+
 pub fn plugin(app: &mut App) {
-    app.add_systems(Startup, spawn)
+    app.add_systems(Startup, setup)
         .add_systems(Update, (handle_input, move_boxes, check_sensors).chain());
 }
 
-fn spawn(mut commands: Commands) {
-    const RENDER_LAYER: usize = 1;
+fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
+    let despawn = commands.register_system(despawn);
+    despawns.0.push(despawn);
+    let spawn = SpawnMovingBox(commands.register_system(spawn));
+    commands.insert_resource(spawn);
 
     commands.spawn((Camera2d, RenderLayers::layer(RENDER_LAYER)));
-
     commands.init_resource::<Input>();
+}
 
+fn despawn(mut commands: Commands, boxes: Query<Entity, With<Box>>) {
+    for entity in boxes.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
+fn spawn(timestep: In<Timestep>, mut commands: Commands) {
     const BOX_SIZE: f32 = 75.0;
     const MOVING_BOX_SIZE: f32 = 70.0;
+
+    const BASE_Y: f32 = -350.0;
+
+    let y = ((timestep.0 as u8).ilog2() as f32 * BOX_SIZE) + BASE_Y;
 
     // Sensor boxes
     for i in -2..=2 {
         let i = i as f32;
-        let pos = Vec2::new(BOX_SIZE * i * 3.0, -350.0);
+        let pos = Vec2::new(BOX_SIZE * i * 3.0, y);
         commands.spawn((
             Box(Aabb2d::new(pos, Vec2::splat(BOX_SIZE / 2.0))),
             Transform::from_translation(pos.extend(0.0)),
@@ -72,14 +94,16 @@ fn spawn(mut commands: Commands) {
     }
 
     // Moving box
-    let pos = Vec2::new(0.0, -350.0);
     commands.spawn((
         Movement {
             speed: 1000.0,
             drag: 100.0,
         },
-        Box(Aabb2d::new(pos, Vec2::splat(MOVING_BOX_SIZE / 2.0))),
-        Transform::from_translation(pos.extend(0.0)),
+        Box(Aabb2d::new(
+            Vec2::new(0.0, y),
+            Vec2::splat(MOVING_BOX_SIZE / 2.0),
+        )),
+        Transform::from_translation(Vec3::new(0.0, y, 0.0)),
         RenderLayers::layer(RENDER_LAYER),
         Sprite::from_color(basic::LIME, Vec2::splat(MOVING_BOX_SIZE)),
     ));

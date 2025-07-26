@@ -1,10 +1,16 @@
 use bevy::{
     color::palettes::basic,
+    ecs::system::SystemId,
     input::mouse::{AccumulatedMouseMotion, MouseMotion},
     prelude::*,
     render::view::RenderLayers,
     window::PrimaryWindow,
 };
+
+use crate::timestep::{DespawnSystems, Timestep};
+
+#[derive(Resource)]
+pub struct SpawnMouseCursor(pub SystemId<In<Timestep>>);
 
 #[derive(Component)]
 struct WindowCursorPosition;
@@ -33,7 +39,7 @@ struct Offset(Vec2);
 const Z: f32 = 1.0;
 
 pub fn plugin(app: &mut App) {
-    app.add_systems(Startup, spawn).add_systems(
+    app.add_systems(Startup, setup).add_systems(
         Update,
         (
             initialise_deltas,
@@ -45,7 +51,20 @@ pub fn plugin(app: &mut App) {
     );
 }
 
-fn spawn(mut commands: Commands) {
+fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
+    let despawn = commands.register_system(despawn);
+    despawns.0.push(despawn);
+    let spawn = SpawnMouseCursor(commands.register_system(spawn));
+    commands.insert_resource(spawn);
+}
+
+fn despawn(mut commands: Commands, cursors: Query<Entity, With<Offset>>) {
+    for entity in cursors.iter() {
+        commands.entity(entity).despawn();
+    }
+}
+
+fn spawn(timestep: In<Timestep>, mut commands: Commands) {
     const RENDER_LAYER: usize = 1;
 
     const CURSOR_BOX_SIZE: f32 = 16.0;
