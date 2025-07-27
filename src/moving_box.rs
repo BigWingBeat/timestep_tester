@@ -4,7 +4,7 @@ use bevy::{
         schedule::ScheduleConfigs,
         system::{ScheduleSystem, SystemId},
     },
-    math::bounding::{Aabb2d, IntersectsVolume},
+    math::bounding::{Aabb2d, BoundingVolume, IntersectsVolume},
     prelude::*,
     render::view::RenderLayers,
 };
@@ -125,10 +125,7 @@ fn spawn(
                 speed: 1000.0,
                 drag: 100.0,
             },
-            Box(Aabb2d::new(
-                Vec2::new(0.0, y),
-                Vec2::splat(MOVING_BOX_SIZE / 2.0),
-            )),
+            Box(Aabb2d::new(Vec2::ZERO, Vec2::splat(MOVING_BOX_SIZE / 2.0))),
             Transform::from_translation(Vec3::new(0.0, y, 0.0)),
             RenderLayers::layer(RENDER_LAYER),
             Sprite::from_color(basic::LIME, Vec2::splat(MOVING_BOX_SIZE)),
@@ -149,11 +146,11 @@ fn handle_input(mut input: ResMut<Input>, keys: Res<ButtonInput<KeyCode>>) {
 }
 
 fn move_boxes<T: Component>(
-    mut movers: Query<(&mut Transform, &mut Box, &mut Velocity, &Movement), With<T>>,
+    mut movers: Query<(&mut Transform, &mut Velocity, &Movement), With<T>>,
     input: Res<Input>,
     time: Res<Time>,
 ) {
-    for (mut transform, mut aabb, mut velocity, configuration) in movers.iter_mut() {
+    for (mut transform, mut velocity, configuration) in movers.iter_mut() {
         match *input {
             Input::Left => velocity.0 = -configuration.speed * time.delta_secs(),
             Input::None => velocity
@@ -162,25 +159,24 @@ fn move_boxes<T: Component>(
             Input::Right => velocity.0 = configuration.speed * time.delta_secs(),
         }
 
-        let mut_x = |x: &mut f32| {
-            *x += velocity.0;
-            if x.abs() > 600.0 {
-                *x = -x.clamp(-600.0, 600.0);
-            }
-        };
-
-        mut_x(&mut transform.translation.x);
-        mut_x(&mut aabb.0.min.x);
-        mut_x(&mut aabb.0.max.x);
+        let mut new_x = transform.translation.x + velocity.0;
+        if new_x.abs() > 600.0 {
+            new_x = -new_x.clamp(-600.0, 600.0);
+        }
+        transform.translation.x = new_x;
     }
 }
 
 fn check_sensors<T: Component>(
-    movers: Query<&Box, (With<Movement>, With<T>)>,
+    movers: Query<(&Transform, &Box), (With<Movement>, With<T>)>,
     mut sensors: Query<(&Box, &mut Sprite), (Without<Movement>, With<T>)>,
 ) {
     for (sensor_aabb, mut sprite) in sensors.iter_mut() {
-        if movers.iter().any(|aabb| sensor_aabb.0.intersects(&aabb.0)) {
+        if movers.iter().any(|(transform, aabb)| {
+            sensor_aabb
+                .0
+                .intersects(&aabb.0.translated_by(transform.translation.xy()))
+        }) {
             sprite.color = basic::BLUE.into();
         } else {
             sprite.color = basic::RED.into();
