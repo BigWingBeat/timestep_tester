@@ -1,12 +1,17 @@
 use bevy::{
     color::{ColorCurve, palettes::tailwind},
-    ecs::system::SystemId,
+    ecs::{
+        schedule::ScheduleConfigs,
+        system::{ScheduleSystem, SystemId},
+    },
     math::DVec3,
     prelude::*,
     render::view::RenderLayers,
 };
 
-use crate::configuration::{DespawnSystems, SimulationDescription, Timestep};
+use crate::configuration::{
+    AppExt, CommandsExt, DespawnSystems, SimulationDescription, Timestep, TimesteppedSystems,
+};
 
 #[derive(Resource)]
 pub struct SpawnLorenzAttractor(pub SystemId<In<Timestep>>);
@@ -46,7 +51,7 @@ impl Colours {
         }
     }
 
-    fn from_timestep(timestep: Timestep) -> Self {
+    fn from_timestep(timestep: &Timestep) -> Self {
         const INTERP_SECONDS: f32 = 10.0;
         let colours = match timestep {
             Timestep::NoDelta => [
@@ -87,8 +92,17 @@ impl Colours {
 
 const RENDER_LAYER: usize = 0;
 
+struct Systems;
+
+impl TimesteppedSystems for Systems {
+    fn get_systems_for_timestep<T: Component>() -> ScheduleConfigs<ScheduleSystem> {
+        run::<T>.into_configs()
+    }
+}
+
 pub fn plugin(app: &mut App) {
-    app.add_systems(Startup, setup).add_systems(Update, run);
+    app.add_systems(Startup, setup)
+        .add_systems_with_timestep::<Systems>();
 }
 
 fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
@@ -123,15 +137,18 @@ fn spawn(
 ) {
     **description = "Lorenz Attractor".into();
 
-    commands.spawn((
-        Trajectory(DVec3::new(2.0, 1.0, 1.0)),
-        RenderLayers::layer(RENDER_LAYER),
-        Colours::from_timestep(timestep.0),
-    ));
+    commands.spawn_with_timestep(
+        &timestep.0,
+        (
+            Trajectory(DVec3::new(2.0, 1.0, 1.0)),
+            RenderLayers::layer(RENDER_LAYER),
+            Colours::from_timestep(&timestep.0),
+        ),
+    );
 }
 
-fn run(
-    mut trajectories: Query<(&mut Trajectory, &mut Points, &mut Colours)>,
+fn run<T: Component>(
+    mut trajectories: Query<(&mut Trajectory, &mut Points, &mut Colours), With<T>>,
     mut gizmos: Gizmos,
     parameters: Res<Parameters>,
     time: Res<Time>,

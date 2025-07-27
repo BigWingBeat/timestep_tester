@@ -1,12 +1,17 @@
 use bevy::{
     color::palettes::basic,
-    ecs::system::SystemId,
+    ecs::{
+        schedule::ScheduleConfigs,
+        system::{ScheduleSystem, SystemId},
+    },
     math::bounding::{Aabb2d, IntersectsVolume},
     prelude::*,
     render::view::RenderLayers,
 };
 
-use crate::configuration::{DespawnSystems, SimulationDescription, Timestep};
+use crate::configuration::{
+    AppExt, CommandsExt, DespawnSystems, SimulationDescription, Timestep, TimesteppedSystems,
+};
 
 #[derive(Resource)]
 pub struct SpawnMovingBox(pub SystemId<In<Timestep>>);
@@ -52,9 +57,19 @@ impl Input {
 
 const RENDER_LAYER: usize = 1;
 
+struct Systems;
+
+impl TimesteppedSystems for Systems {
+    fn get_systems_for_timestep<T: Component>() -> ScheduleConfigs<ScheduleSystem> {
+        // (handle_input, move_boxes::<T>, check_sensors::<T>)
+        (move_boxes::<T>, check_sensors::<T>).chain().into_configs()
+    }
+}
+
 pub fn plugin(app: &mut App) {
     app.add_systems(Startup, setup)
-        .add_systems(Update, (handle_input, move_boxes, check_sensors).chain());
+        .add_systems_with_timestep::<Systems>()
+        .add_systems(Update, handle_input);
 }
 
 fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
@@ -91,28 +106,34 @@ fn spawn(
     for i in -2..=2 {
         let i = i as f32;
         let pos = Vec2::new(BOX_SIZE * i * 3.0, y);
-        commands.spawn((
-            Box(Aabb2d::new(pos, Vec2::splat(BOX_SIZE / 2.0))),
-            Transform::from_translation(pos.extend(0.0)),
-            RenderLayers::layer(RENDER_LAYER),
-            Sprite::from_color(basic::RED, Vec2::splat(BOX_SIZE)),
-        ));
+        commands.spawn_with_timestep(
+            &timestep.0,
+            (
+                Box(Aabb2d::new(pos, Vec2::splat(BOX_SIZE / 2.0))),
+                Transform::from_translation(pos.extend(0.0)),
+                RenderLayers::layer(RENDER_LAYER),
+                Sprite::from_color(basic::RED, Vec2::splat(BOX_SIZE)),
+            ),
+        );
     }
 
     // Moving box
-    commands.spawn((
-        Movement {
-            speed: 1000.0,
-            drag: 100.0,
-        },
-        Box(Aabb2d::new(
-            Vec2::new(0.0, y),
-            Vec2::splat(MOVING_BOX_SIZE / 2.0),
-        )),
-        Transform::from_translation(Vec3::new(0.0, y, 0.0)),
-        RenderLayers::layer(RENDER_LAYER),
-        Sprite::from_color(basic::LIME, Vec2::splat(MOVING_BOX_SIZE)),
-    ));
+    commands.spawn_with_timestep(
+        &timestep.0,
+        (
+            Movement {
+                speed: 1000.0,
+                drag: 100.0,
+            },
+            Box(Aabb2d::new(
+                Vec2::new(0.0, y),
+                Vec2::splat(MOVING_BOX_SIZE / 2.0),
+            )),
+            Transform::from_translation(Vec3::new(0.0, y, 0.0)),
+            RenderLayers::layer(RENDER_LAYER),
+            Sprite::from_color(basic::LIME, Vec2::splat(MOVING_BOX_SIZE)),
+        ),
+    );
 }
 
 fn handle_input(mut input: ResMut<Input>, keys: Res<ButtonInput<KeyCode>>) {
@@ -127,8 +148,8 @@ fn handle_input(mut input: ResMut<Input>, keys: Res<ButtonInput<KeyCode>>) {
     }
 }
 
-fn move_boxes(
-    mut movers: Query<(&mut Transform, &mut Box, &mut Velocity, &Movement)>,
+fn move_boxes<T: Component>(
+    mut movers: Query<(&mut Transform, &mut Box, &mut Velocity, &Movement), With<T>>,
     input: Res<Input>,
     time: Res<Time>,
 ) {
@@ -154,9 +175,9 @@ fn move_boxes(
     }
 }
 
-fn check_sensors(
-    movers: Query<&Box, With<Movement>>,
-    mut sensors: Query<(&Box, &mut Sprite), Without<Movement>>,
+fn check_sensors<T: Component>(
+    movers: Query<&Box, (With<Movement>, With<T>)>,
+    mut sensors: Query<(&Box, &mut Sprite), (Without<Movement>, With<T>)>,
 ) {
     for (sensor_aabb, mut sprite) in sensors.iter_mut() {
         if movers.iter().any(|aabb| sensor_aabb.0.intersects(&aabb.0)) {

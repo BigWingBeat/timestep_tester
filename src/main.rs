@@ -33,6 +33,7 @@ fn main() -> AppExit {
             lorenz_attractor::plugin,
             mouse_cursor::plugin,
             moving_box::plugin,
+            timestep::plugin,
         ))
         .run()
 }

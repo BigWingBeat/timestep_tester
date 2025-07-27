@@ -1,10 +1,18 @@
-use bevy::{ecs::system::SystemId, prelude::*};
+use bevy::{
+    ecs::{
+        schedule::ScheduleConfigs,
+        system::{ScheduleSystem, SystemId},
+    },
+    prelude::*,
+};
 use bitflags::{Flags, bitflags};
 use num_enum::TryFromPrimitive;
 
 use crate::{
-    lorenz_attractor::SpawnLorenzAttractor, mouse_cursor::SpawnMouseCursor,
+    lorenz_attractor::SpawnLorenzAttractor,
+    mouse_cursor::SpawnMouseCursor,
     moving_box::SpawnMovingBox,
+    timestep::{Fixed, NoDelta, SemiFixed, VariableDelta},
 };
 
 #[derive(Resource, Clone, Copy, Default)]
@@ -15,13 +23,49 @@ enum ActiveSimulation {
     MovingBox,
 }
 
-#[derive(TryFromPrimitive)]
+#[derive(TryFromPrimitive, Clone, Copy)]
 #[repr(u8)]
 pub enum Timestep {
     NoDelta = 1,
     VariableDelta = 2,
     SemiFixed = 4,
     Fixed = 8,
+}
+
+pub trait CommandsExt {
+    fn spawn_with_timestep(&mut self, timestep: &Timestep, bundle: impl Bundle) -> EntityCommands;
+}
+
+impl CommandsExt for Commands<'_, '_> {
+    fn spawn_with_timestep(&mut self, timestep: &Timestep, bundle: impl Bundle) -> EntityCommands {
+        match timestep {
+            Timestep::NoDelta => self.spawn((NoDelta, bundle)),
+            Timestep::VariableDelta => self.spawn((VariableDelta, bundle)),
+            Timestep::SemiFixed => self.spawn((SemiFixed, bundle)),
+            Timestep::Fixed => self.spawn((Fixed, bundle)),
+        }
+    }
+}
+
+pub trait TimesteppedSystems {
+    fn get_systems_for_timestep<T: Component>() -> ScheduleConfigs<ScheduleSystem>;
+}
+
+pub trait AppExt {
+    fn add_systems_with_timestep<T: TimesteppedSystems>(&mut self) -> &mut Self;
+}
+
+impl AppExt for App {
+    fn add_systems_with_timestep<T: TimesteppedSystems>(&mut self) -> &mut Self {
+        self.add_systems(NoDelta, T::get_systems_for_timestep::<NoDelta>());
+        self.add_systems(
+            VariableDelta,
+            T::get_systems_for_timestep::<VariableDelta>(),
+        );
+        self.add_systems(SemiFixed, T::get_systems_for_timestep::<SemiFixed>());
+        self.add_systems(Fixed, T::get_systems_for_timestep::<Fixed>());
+        self
+    }
 }
 
 bitflags! {
