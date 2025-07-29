@@ -43,6 +43,8 @@ struct Offset(Vec2);
 
 const Z: f32 = 1.0;
 
+const RENDER_LAYER: usize = 1;
+
 struct Systems;
 
 impl TimesteppedSystems for Systems {
@@ -68,6 +70,7 @@ fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
     despawns.0.push(despawn);
     let spawn = commands.register_system(spawn);
     commands.insert_resource(SpawnMouseCursor(spawn));
+    commands.spawn((Camera2d, RenderLayers::layer(RENDER_LAYER)));
 }
 
 fn despawn(mut commands: Commands, cursors: Query<Entity, With<Offset>>) {
@@ -88,8 +91,6 @@ FUCHSIA: EventReader<CursorMoved>::delta & Vec2::reflect(Vec2::Y)
 WHITE: EventReader<MouseMotion>::delta & Vec2::reflect(Vec2::Y)
 BLACK: Res<AccumulatedMouseMotion>::delta & Vec2::reflect(Vec2::Y)"
         .into();
-
-    const RENDER_LAYER: usize = 1;
 
     const CURSOR_BOX_SIZE: f32 = 16.0;
 

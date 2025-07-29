@@ -55,7 +55,7 @@ impl Input {
     }
 }
 
-const RENDER_LAYER: usize = 1;
+const RENDER_LAYER: usize = 2;
 
 struct Systems;
 
