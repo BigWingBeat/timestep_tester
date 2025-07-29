@@ -1,47 +1,48 @@
 use bevy::{
-    color::palettes::basic,
+    color::palettes::basic::*,
+    core_pipeline::tonemapping::Tonemapping,
     ecs::{
         schedule::ScheduleConfigs,
         system::{ScheduleSystem, SystemId},
     },
-    input::mouse::{AccumulatedMouseMotion, MouseMotion},
     prelude::*,
     render::view::RenderLayers,
     window::PrimaryWindow,
 };
+use bitflags::Flags;
 
 use crate::configuration::{
-    AppExt, CommandsExt, DespawnSystems, SimulationDescription, Timestep, TimesteppedSystems,
+    ActiveTimesteps, AppExt, CommandsExt, DespawnSystems, SimulationDescription, Timestep,
+    TimesteppedSystems,
 };
 
 #[derive(Resource)]
 pub struct SpawnMouseCursor(pub SystemId<In<Timestep>>);
 
-#[derive(Component)]
-struct WindowCursorPosition;
+#[derive(Resource)]
+struct CursorMesh(Handle<Mesh>);
+
+#[derive(Resource)]
+struct CursorMaterial([Handle<StandardMaterial>; ActiveTimesteps::FLAGS.len()]);
+
+fn material(timestep: Timestep) -> StandardMaterial {
+    let colour = match timestep {
+        Timestep::NoDelta => GRAY,
+        Timestep::VariableDelta => BLUE,
+        Timestep::SemiFixed => LIME,
+        Timestep::Fixed => RED,
+    };
+
+    StandardMaterial {
+        base_color: colour.into(),
+        unlit: true,
+        alpha_mode: AlphaMode::Add,
+        ..default()
+    }
+}
 
 #[derive(Component)]
-struct CursorMovedEventPosition;
-
-#[derive(Component)]
-#[require(DeltaInitialised)]
-struct CursorMovedEventDelta;
-
-#[derive(Component)]
-#[require(DeltaInitialised)]
-struct MouseMotionEvent;
-
-#[derive(Component)]
-#[require(DeltaInitialised)]
-struct AccumulatedMouseMotionRes;
-
-#[derive(Component, Default)]
-struct DeltaInitialised(bool);
-
-#[derive(Component)]
-struct Offset(Vec2);
-
-const Z: f32 = 1.0;
+struct Cursor;
 
 const RENDER_LAYER: usize = 1;
 
@@ -49,14 +50,7 @@ struct Systems;
 
 impl TimesteppedSystems for Systems {
     fn get_systems_for_timestep<T: Component>() -> ScheduleConfigs<ScheduleSystem> {
-        (
-            queue_initialise_deltas::<T>,
-            window_cursor_position::<T>,
-            cursor_moved_event::<T>,
-            mouse_motion_event::<T>,
-            accumulated_mouse_motion::<T>,
-        )
-            .into_configs()
+        move_cursor::<T>.into_configs()
     }
 }
 
@@ -65,15 +59,39 @@ pub fn plugin(app: &mut App) {
         .add_systems_with_timestep::<Systems>();
 }
 
-fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
+fn setup(
+    mut commands: Commands,
+    mut despawns: ResMut<DespawnSystems>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    const CURSOR_BOX_SIZE: f32 = 32.0;
+
     let despawn = commands.register_system(despawn);
     despawns.0.push(despawn);
     let spawn = commands.register_system(spawn);
     commands.insert_resource(SpawnMouseCursor(spawn));
-    commands.spawn((Camera2d, RenderLayers::layer(RENDER_LAYER)));
+
+    commands.spawn((
+        Camera3d::default(),
+        Projection::Orthographic(OrthographicProjection::default_3d()),
+        Tonemapping::None,
+        RenderLayers::layer(RENDER_LAYER),
+    ));
+
+    let mesh = meshes.add(Rectangle::from_length(CURSOR_BOX_SIZE));
+    commands.insert_resource(CursorMesh(mesh));
+
+    let materials = [
+        materials.add(material(Timestep::NoDelta)),
+        materials.add(material(Timestep::VariableDelta)),
+        materials.add(material(Timestep::SemiFixed)),
+        materials.add(material(Timestep::Fixed)),
+    ];
+    commands.insert_resource(CursorMaterial(materials));
 }
 
-fn despawn(mut commands: Commands, cursors: Query<Entity, With<Offset>>) {
+fn despawn(mut commands: Commands, cursors: Query<Entity, With<Cursor>>) {
     for entity in cursors.iter() {
         commands.entity(entity).despawn();
     }
@@ -83,101 +101,29 @@ fn spawn(
     timestep: In<Timestep>,
     mut commands: Commands,
     mut description: Single<&mut TextSpan, With<SimulationDescription>>,
+    mesh: Res<CursorMesh>,
+    material: Res<CursorMaterial>,
 ) {
     **description = "Cursor Colours:
-YELLOW: Window::cursor_position & Camera::viewport_to_world_2d
-AQUA: EventReader<CursorMoved>::position & Camera::viewport_to_world_2d
-FUCHSIA: EventReader<CursorMoved>::delta & Vec2::reflect(Vec2::Y)
-WHITE: EventReader<MouseMotion>::delta & Vec2::reflect(Vec2::Y)
-BLACK: Res<AccumulatedMouseMotion>::delta & Vec2::reflect(Vec2::Y)"
+GRAY: No Delta Time
+BLUE: Variable Delta Time
+LIME: Semi-Fixed Timestep
+RED: Fixed Timestep"
         .into();
 
-    const CURSOR_BOX_SIZE: f32 = 16.0;
-
     commands.spawn_with_timestep(
         &timestep.0,
         (
-            WindowCursorPosition,
-            Offset(Vec2::new(8.0, 8.0)),
+            Cursor,
+            Mesh3d(mesh.0.clone()),
+            MeshMaterial3d(material.0[(timestep.0 as u8).ilog2() as usize].clone()),
             RenderLayers::layer(RENDER_LAYER),
-            Sprite::from_color(basic::YELLOW, Vec2::splat(CURSOR_BOX_SIZE)),
-        ),
-    );
-
-    commands.spawn_with_timestep(
-        &timestep.0,
-        (
-            CursorMovedEventPosition,
-            Offset(Vec2::new(-8.0, 8.0)),
-            RenderLayers::layer(RENDER_LAYER),
-            Sprite::from_color(basic::AQUA, Vec2::splat(CURSOR_BOX_SIZE)),
-        ),
-    );
-
-    commands.spawn_with_timestep(
-        &timestep.0,
-        (
-            CursorMovedEventDelta,
-            Offset(Vec2::new(8.0, -8.0)),
-            RenderLayers::layer(RENDER_LAYER),
-            Sprite::from_color(basic::FUCHSIA, Vec2::splat(CURSOR_BOX_SIZE)),
-        ),
-    );
-
-    commands.spawn_with_timestep(
-        &timestep.0,
-        (
-            MouseMotionEvent,
-            Offset(Vec2::new(-8.0, -8.0)),
-            RenderLayers::layer(RENDER_LAYER),
-            Sprite::from_color(basic::WHITE, Vec2::splat(CURSOR_BOX_SIZE)),
-        ),
-    );
-
-    commands.spawn_with_timestep(
-        &timestep.0,
-        (
-            AccumulatedMouseMotionRes,
-            Offset(Vec2::new(-24.0, -24.0)),
-            RenderLayers::layer(RENDER_LAYER),
-            Sprite::from_color(basic::BLACK, Vec2::splat(CURSOR_BOX_SIZE)),
         ),
     );
 }
 
-fn queue_initialise_deltas<T: Component>(
-    mut commands: Commands,
-    mut events: EventReader<CursorMoved>,
-    window: Single<&Window, With<PrimaryWindow>>,
-) {
-    if window.cursor_position().is_none() {
-        return;
-    }
-
-    let something_frame = events.read().any(|event| event.delta.is_some());
-    if something_frame {
-        commands.run_system_cached(initialise_deltas::<T>);
-    }
-}
-
-fn initialise_deltas<T: Component>(
-    mut cursors: Query<(&mut Transform, &Offset, &mut DeltaInitialised), With<T>>,
-    window: Single<&Window, With<PrimaryWindow>>,
-    camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
-) {
-    let position = window.cursor_position().unwrap();
-    let position = camera.0.viewport_to_world_2d(camera.1, position).unwrap();
-
-    for (mut cursor, offset, mut init) in cursors.iter_mut() {
-        if !init.0 {
-            cursor.translation = (position + offset.0).extend(Z);
-            init.0 = true;
-        }
-    }
-}
-
-fn window_cursor_position<T: Component>(
-    mut cursor: Single<(&mut Transform, &Offset), (With<WindowCursorPosition>, With<T>)>,
+fn move_cursor<T: Component>(
+    mut cursor: Single<&mut Transform, (With<Cursor>, With<T>)>,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
 ) {
@@ -186,54 +132,5 @@ fn window_cursor_position<T: Component>(
     };
 
     let position = camera.0.viewport_to_world_2d(camera.1, position).unwrap();
-    cursor.0.translation = (position + cursor.1.0).extend(Z);
-}
-
-fn cursor_moved_event<T: Component>(
-    mut cursor_pos: Single<
-        (&mut Transform, &Offset),
-        (
-            With<CursorMovedEventPosition>,
-            Without<CursorMovedEventDelta>,
-            With<T>,
-        ),
-    >,
-    mut cursor_delta: Single<
-        (&mut Transform, &Offset),
-        (
-            With<CursorMovedEventDelta>,
-            Without<CursorMovedEventPosition>,
-            With<T>,
-        ),
-    >,
-    mut events: EventReader<CursorMoved>,
-    camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
-) {
-    for event in events.read() {
-        let position = camera
-            .0
-            .viewport_to_world_2d(camera.1, event.position)
-            .unwrap();
-        cursor_pos.0.translation = (position + cursor_pos.1.0).extend(Z);
-
-        if let Some(delta) = event.delta {
-            cursor_delta.0.translation += delta.reflect(Vec2::Y).extend(0.0);
-        }
-    }
-}
-
-fn mouse_motion_event<T: Component>(
-    mut cursor: Single<(&mut Transform, &Offset), (With<MouseMotionEvent>, With<T>)>,
-    mut events: EventReader<MouseMotion>,
-) {
-    for event in events.read() {
-        cursor.0.translation += event.delta.reflect(Vec2::Y).extend(0.0) * 2.0;
-    }
-}
-
-fn accumulated_mouse_motion<T: Component>(
-    mut cursor: Single<(&mut Transform, &Offset), (With<AccumulatedMouseMotionRes>, With<T>)>,
-    accumulated_mouse_motion: Res<AccumulatedMouseMotion>,
-) {
-    cursor.0.translation += accumulated_mouse_motion.delta.reflect(Vec2::Y).extend(0.0) * 2.0;
+    cursor.translation = position.extend(-1.0);
 }
