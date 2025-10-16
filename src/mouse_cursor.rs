@@ -1,4 +1,5 @@
 use bevy::{
+    camera::visibility::RenderLayers,
     color::palettes::basic::*,
     core_pipeline::tonemapping::Tonemapping,
     ecs::{
@@ -6,7 +7,6 @@ use bevy::{
         system::{ScheduleSystem, SystemId},
     },
     prelude::*,
-    render::view::RenderLayers,
     window::PrimaryWindow,
 };
 use bitflags::Flags;

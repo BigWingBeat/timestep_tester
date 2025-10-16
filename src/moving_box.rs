@@ -1,4 +1,5 @@
 use bevy::{
+    camera::visibility::RenderLayers,
     color::palettes::basic,
     ecs::{
         schedule::ScheduleConfigs,
@@ -6,7 +7,6 @@ use bevy::{
     },
     math::bounding::{Aabb2d, BoundingVolume, IntersectsVolume},
     prelude::*,
-    render::view::RenderLayers,
 };
 
 use crate::configuration::{
