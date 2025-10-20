@@ -121,7 +121,7 @@ fn setup(mut commands: Commands) {
             Text::default(),
             Node {
                 position_type: PositionType::Absolute,
-                top: Val::Px(12.0),
+                top: Val::Px(120.0),
                 left: Val::Px(12.0),
                 ..default()
             },
