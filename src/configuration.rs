@@ -9,9 +9,9 @@ use bitflags::{Flags, bitflags};
 use num_enum::TryFromPrimitive;
 
 use crate::{
-    lorenz_attractor::SpawnLorenzAttractor,
-    mouse_cursor::SpawnMouseCursor,
-    moving_box::SpawnMovingBox,
+    lorenz_attractor::LorenzAttractorMeta,
+    mouse_cursor::MouseCursorMeta,
+    moving_box::MovingBoxMeta,
     timestep::{Fixed, NoDelta, SemiFixed, VariableDelta},
 };
 
@@ -103,11 +103,15 @@ pub struct SimulationDescription;
 #[derive(Resource, Default)]
 pub struct DespawnSystems(pub Vec<SystemId>);
 
+pub trait SimulationMeta {
+    fn get(&self) -> (Entity, SystemId<In<Timestep>>);
+}
+
 pub fn plugin(app: &mut App) {
     app.init_resource::<ActiveSimulation>()
         .init_resource::<ActiveTimesteps>()
         .init_resource::<DespawnSystems>()
-        .add_systems(Startup, setup)
+        .add_systems(PostStartup, setup)
         .add_systems(Update, handle_input);
 }
 
@@ -149,12 +153,13 @@ fn respawn(
             Without<ActiveSimulationDescription>,
         ),
     >,
+    mut cameras: Query<(Entity, &mut Camera)>,
     active_simulation: Res<ActiveSimulation>,
     active_timesteps: Res<ActiveTimesteps>,
     despawn_systems: Res<DespawnSystems>,
-    lorenz_attractor: Res<SpawnLorenzAttractor>,
-    mouse_cursor: Res<SpawnMouseCursor>,
-    moving_box: Res<SpawnMovingBox>,
+    lorenz_attractor: Res<LorenzAttractorMeta>,
+    mouse_cursor: Res<MouseCursorMeta>,
+    moving_box: Res<MovingBoxMeta>,
 ) {
     let mut active_sim_text = vec![
         "Switch active simulation:\n'1': Lorenz Attractor",
@@ -188,11 +193,21 @@ fn respawn(
         commands.run_system(system);
     }
 
-    let spawn = match *active_simulation {
-        ActiveSimulation::LorenzAttractor => lorenz_attractor.0,
-        ActiveSimulation::MouseCursor => mouse_cursor.0,
-        ActiveSimulation::MovingBox => moving_box.0,
+    let (active_camera, spawn) = match *active_simulation {
+        ActiveSimulation::LorenzAttractor => lorenz_attractor.get(),
+        ActiveSimulation::MouseCursor => mouse_cursor.get(),
+        ActiveSimulation::MovingBox => moving_box.get(),
     };
+
+    for (entity, mut camera) in cameras.iter_mut() {
+        if active_camera == entity {
+            camera.is_active = true;
+            commands.entity(entity).insert(IsDefaultUiCamera);
+        } else {
+            camera.is_active = false;
+            commands.entity(entity).remove::<IsDefaultUiCamera>();
+        }
+    }
 
     for timestep in active_timesteps.iter_timesteps() {
         commands.run_system_with(spawn, timestep);

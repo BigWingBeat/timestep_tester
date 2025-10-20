@@ -1,4 +1,4 @@
-use bevy::{prelude::*, window::PresentMode};
+use bevy::{dev_tools::fps_overlay::FpsOverlayPlugin, prelude::*, window::PresentMode};
 use clap::{Parser, ValueEnum};
 
 mod configuration;
@@ -21,13 +21,16 @@ struct Args {
 fn main() -> AppExit {
     let args = Args::parse();
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                present_mode: PresentMode::Mailbox,
+        .add_plugins((
+            DefaultPlugins.set(WindowPlugin {
+                primary_window: Some(Window {
+                    present_mode: PresentMode::Mailbox,
+                    ..default()
+                }),
                 ..default()
             }),
-            ..default()
-        }))
+            FpsOverlayPlugin::default(),
+        ))
         .add_plugins((
             configuration::plugin,
             lorenz_attractor::plugin,

@@ -1,6 +1,7 @@
 use bevy::{
     camera::visibility::RenderLayers,
     color::{ColorCurve, palettes::tailwind},
+    core_pipeline::tonemapping::Tonemapping,
     ecs::{
         schedule::ScheduleConfigs,
         system::{ScheduleSystem, SystemId},
@@ -10,11 +11,21 @@ use bevy::{
 };
 
 use crate::configuration::{
-    AppExt, CommandsExt, DespawnSystems, SimulationDescription, Timestep, TimesteppedSystems,
+    AppExt, CommandsExt, DespawnSystems, SimulationDescription, SimulationMeta, Timestep,
+    TimesteppedSystems,
 };
 
 #[derive(Resource)]
-pub struct SpawnLorenzAttractor(pub SystemId<In<Timestep>>);
+pub struct LorenzAttractorMeta {
+    pub camera: Entity,
+    pub spawn: SystemId<In<Timestep>>,
+}
+
+impl SimulationMeta for LorenzAttractorMeta {
+    fn get(&self) -> (Entity, SystemId<In<Timestep>>) {
+        (self.camera, self.spawn)
+    }
+}
 
 #[derive(Resource)]
 struct Parameters {
@@ -109,13 +120,21 @@ fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
     let despawn = commands.register_system(despawn);
     despawns.0.push(despawn);
     let spawn = commands.register_system(spawn);
-    commands.insert_resource(SpawnLorenzAttractor(spawn));
 
-    commands.spawn((
-        Camera3d::default(),
-        RenderLayers::layer(RENDER_LAYER),
-        Transform::from_xyz(-100.0, 150.0, 150.0).looking_at(Vec3::new(0.0, 30.0, 0.0), Vec3::Y),
-    ));
+    let camera = commands
+        .spawn((
+            Camera3d::default(),
+            Camera {
+                is_active: false,
+                ..default()
+            },
+            RenderLayers::layer(RENDER_LAYER),
+            Transform::from_xyz(-100.0, 150.0, 150.0)
+                .looking_at(Vec3::new(0.0, 30.0, 0.0), Vec3::Y),
+        ))
+        .id();
+
+    commands.insert_resource(LorenzAttractorMeta { camera, spawn });
 
     commands.insert_resource(Parameters {
         sigma: 10.0,

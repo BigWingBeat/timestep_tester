@@ -10,11 +10,21 @@ use bevy::{
 };
 
 use crate::configuration::{
-    AppExt, CommandsExt, DespawnSystems, SimulationDescription, Timestep, TimesteppedSystems,
+    AppExt, CommandsExt, DespawnSystems, SimulationDescription, SimulationMeta, Timestep,
+    TimesteppedSystems,
 };
 
 #[derive(Resource)]
-pub struct SpawnMovingBox(pub SystemId<In<Timestep>>);
+pub struct MovingBoxMeta {
+    pub camera: Entity,
+    pub spawn: SystemId<In<Timestep>>,
+}
+
+impl SimulationMeta for MovingBoxMeta {
+    fn get(&self) -> (Entity, SystemId<In<Timestep>>) {
+        (self.camera, self.spawn)
+    }
+}
 
 #[derive(Component)]
 struct Box(Aabb2d);
@@ -76,9 +86,19 @@ fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
     let despawn = commands.register_system(despawn);
     despawns.0.push(despawn);
     let spawn = commands.register_system(spawn);
-    commands.insert_resource(SpawnMovingBox(spawn));
 
-    commands.spawn((Camera2d, RenderLayers::layer(RENDER_LAYER)));
+    let camera = commands
+        .spawn((
+            Camera2d,
+            Camera {
+                is_active: false,
+                ..default()
+            },
+            RenderLayers::layer(RENDER_LAYER),
+        ))
+        .id();
+    commands.insert_resource(MovingBoxMeta { camera, spawn });
+
     commands.init_resource::<Input>();
 }
 

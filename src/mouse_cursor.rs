@@ -12,12 +12,21 @@ use bevy::{
 use bitflags::Flags;
 
 use crate::configuration::{
-    ActiveTimesteps, AppExt, CommandsExt, DespawnSystems, SimulationDescription, Timestep,
-    TimesteppedSystems,
+    ActiveTimesteps, AppExt, CommandsExt, DespawnSystems, SimulationDescription, SimulationMeta,
+    Timestep, TimesteppedSystems,
 };
 
 #[derive(Resource)]
-pub struct SpawnMouseCursor(pub SystemId<In<Timestep>>);
+pub struct MouseCursorMeta {
+    pub camera: Entity,
+    pub spawn: SystemId<In<Timestep>>,
+}
+
+impl SimulationMeta for MouseCursorMeta {
+    fn get(&self) -> (Entity, SystemId<In<Timestep>>) {
+        (self.camera, self.spawn)
+    }
+}
 
 #[derive(Resource)]
 struct CursorMesh(Handle<Mesh>);
@@ -70,14 +79,21 @@ fn setup(
     let despawn = commands.register_system(despawn);
     despawns.0.push(despawn);
     let spawn = commands.register_system(spawn);
-    commands.insert_resource(SpawnMouseCursor(spawn));
 
-    commands.spawn((
-        Camera3d::default(),
-        Projection::Orthographic(OrthographicProjection::default_3d()),
-        Tonemapping::None,
-        RenderLayers::layer(RENDER_LAYER),
-    ));
+    let camera = commands
+        .spawn((
+            Camera3d::default(),
+            Camera {
+                is_active: false,
+                ..default()
+            },
+            Projection::Orthographic(OrthographicProjection::default_3d()),
+            Tonemapping::None,
+            RenderLayers::layer(RENDER_LAYER),
+        ))
+        .id();
+
+    commands.insert_resource(MouseCursorMeta { camera, spawn });
 
     let mesh = meshes.add(Rectangle::from_length(CURSOR_BOX_SIZE));
     commands.insert_resource(CursorMesh(mesh));
