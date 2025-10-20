@@ -128,6 +128,7 @@ fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
                 is_active: false,
                 ..default()
             },
+            Tonemapping::None,
             RenderLayers::layer(RENDER_LAYER),
             Transform::from_xyz(-100.0, 150.0, 150.0)
                 .looking_at(Vec3::new(0.0, 30.0, 0.0), Vec3::Y),

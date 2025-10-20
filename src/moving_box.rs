@@ -1,6 +1,7 @@
 use bevy::{
     camera::visibility::RenderLayers,
     color::palettes::basic,
+    core_pipeline::tonemapping::Tonemapping,
     ecs::{
         schedule::ScheduleConfigs,
         system::{ScheduleSystem, SystemId},
@@ -94,6 +95,7 @@ fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
                 is_active: false,
                 ..default()
             },
+            Tonemapping::None,
             RenderLayers::layer(RENDER_LAYER),
         ))
         .id();
