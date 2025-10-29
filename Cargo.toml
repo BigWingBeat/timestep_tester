@@ -6,9 +6,10 @@ edition = "2024"
 [dependencies]
 bevy = { version = "0.17", default-features = false, features = [
 	"bevy_dev_tools",
+	"bevy_gizmos",
+	"bevy_input_focus",
 	"bevy_pbr",
 	"bevy_picking",
-	"bevy_gizmos",
 	"bevy_sprite_render",
 	"bevy_ui_render",
 	"bevy_winit",

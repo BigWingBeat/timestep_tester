@@ -16,7 +16,7 @@ use crate::{
 };
 
 #[derive(Resource, Clone, Copy, Default)]
-enum ActiveSimulation {
+pub enum ActiveSimulation {
     #[default]
     LorenzAttractor = 1,
     MouseCursor,
@@ -102,15 +102,14 @@ pub fn plugin(app: &mut App) {
     app.init_resource::<ActiveSimulation>()
         .init_resource::<ActiveTimesteps>()
         .init_resource::<DespawnSystems>()
-        .add_systems(PostStartup, setup)
-        .add_systems(Update, handle_input);
+        .add_systems(PostStartup, setup);
 }
 
 fn setup(mut commands: Commands) {
     commands.run_system_cached(respawn);
 }
 
-fn respawn(
+pub fn respawn(
     mut commands: Commands,
     mut cameras: Query<(Entity, &mut Camera)>,
     active_simulation: Res<ActiveSimulation>,
@@ -142,53 +141,5 @@ fn respawn(
 
     for timestep in active_timesteps.iter_timesteps() {
         commands.run_system_with(spawn, timestep);
-    }
-}
-
-fn handle_input(
-    mut commands: Commands,
-    mut active_simulation: ResMut<ActiveSimulation>,
-    mut active_timesteps: ResMut<ActiveTimesteps>,
-    keys: Res<ButtonInput<KeyCode>>,
-) {
-    let mut any_change = true;
-
-    let lorenz_attractor = keys.just_pressed(KeyCode::Digit1);
-    let mouse_cursor = keys.just_pressed(KeyCode::Digit2);
-    let moving_box = keys.just_pressed(KeyCode::Digit3);
-    match (lorenz_attractor, mouse_cursor, moving_box) {
-        (true, false, false) => *active_simulation = ActiveSimulation::LorenzAttractor,
-        (false, true, false) => *active_simulation = ActiveSimulation::MouseCursor,
-        (false, false, true) => *active_simulation = ActiveSimulation::MovingBox,
-        _ => any_change = false,
-    }
-
-    let no_delta = keys.just_pressed(KeyCode::Digit4);
-    let variable_delta = keys.just_pressed(KeyCode::Digit5);
-    let semi_fixed = keys.just_pressed(KeyCode::Digit6);
-    let fixed = keys.just_pressed(KeyCode::Digit7);
-
-    if no_delta {
-        active_timesteps.toggle(ActiveTimesteps::NO_DELTA);
-        any_change = true;
-    }
-
-    if variable_delta {
-        active_timesteps.toggle(ActiveTimesteps::VARIABLE_DELTA);
-        any_change = true;
-    }
-
-    if semi_fixed {
-        active_timesteps.toggle(ActiveTimesteps::SEMI_FIXED);
-        any_change = true;
-    }
-
-    if fixed {
-        active_timesteps.toggle(ActiveTimesteps::FIXED);
-        any_change = true;
-    }
-
-    if any_change {
-        commands.run_system_cached(respawn);
     }
 }
