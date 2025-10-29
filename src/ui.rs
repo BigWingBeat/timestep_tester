@@ -79,21 +79,21 @@ fn setup(mut commands: Commands) {
                             ),
                             (),
                         ))
-                        .with_child(Text::new("'1': Lorenz Attractor"));
+                        .with_child(Text::new("Lorenz Attractor"));
 
                     radios
                         .spawn(radio(
                             SimulationRadioButton(ActiveSimulation::MouseCursor),
                             (),
                         ))
-                        .with_child(Text::new("'2': Mouse Cursor"));
+                        .with_child(Text::new("Mouse Cursor"));
 
                     radios
                         .spawn(radio(
                             SimulationRadioButton(ActiveSimulation::MovingBox),
                             (),
                         ))
-                        .with_child(Text::new("'3': Moving Box"));
+                        .with_child(Text::new("Moving Box"));
                 });
 
             children
@@ -107,7 +107,7 @@ fn setup(mut commands: Commands) {
 
                         toggles
                             .spawn(checkbox((), ()))
-                            .with_child(Text::new("'4': No Delta Time"))
+                            .with_child(Text::new("No Delta Time"))
                             .observe(
                                 |on: On<ValueChange<bool>>,
                                  mut active_timesteps: ResMut<ActiveTimesteps>,
@@ -124,7 +124,7 @@ fn setup(mut commands: Commands) {
 
                         toggles
                             .spawn(checkbox((), ()))
-                            .with_child(Text::new("'5': Variable Delta Time"))
+                            .with_child(Text::new("Variable Delta Time"))
                             .observe(
                                 |on: On<ValueChange<bool>>,
                                  mut active_timesteps: ResMut<ActiveTimesteps>,
@@ -141,7 +141,7 @@ fn setup(mut commands: Commands) {
 
                         toggles
                             .spawn(checkbox(Checked, ()))
-                            .with_child(Text::new("'6': Semi-Fixed Timestep"))
+                            .with_child(Text::new("Semi-Fixed Timestep"))
                             .observe(
                                 |on: On<ValueChange<bool>>,
                                  mut active_timesteps: ResMut<ActiveTimesteps>,
@@ -158,7 +158,7 @@ fn setup(mut commands: Commands) {
 
                         toggles
                             .spawn(checkbox((), ()))
-                            .with_child(Text::new("'7': Fixed Timestep"))
+                            .with_child(Text::new("Fixed Timestep"))
                             .observe(
                                 |on: On<ValueChange<bool>>,
                                  mut active_timesteps: ResMut<ActiveTimesteps>,
