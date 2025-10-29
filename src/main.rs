@@ -1,4 +1,7 @@
-use bevy::{dev_tools::fps_overlay::FpsOverlayPlugin, prelude::*, window::PresentMode};
+use bevy::{
+    dev_tools::fps_overlay::FpsOverlayPlugin, feathers::FeathersPlugins, prelude::*,
+    window::PresentMode,
+};
 use clap::{Parser, ValueEnum};
 
 mod configuration;
@@ -6,6 +9,7 @@ mod lorenz_attractor;
 mod mouse_cursor;
 mod moving_box;
 mod timestep;
+mod ui;
 
 #[derive(Clone, Copy, ValueEnum)]
 enum Mode {
@@ -29,6 +33,7 @@ fn main() -> AppExit {
                 }),
                 ..default()
             }),
+            FeathersPlugins,
             FpsOverlayPlugin::default(),
         ))
         .add_plugins((
@@ -37,6 +42,7 @@ fn main() -> AppExit {
             mouse_cursor::plugin,
             moving_box::plugin,
             timestep::plugin,
+            ui::plugin,
         ))
         .run()
 }

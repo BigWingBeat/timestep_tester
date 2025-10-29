@@ -10,9 +10,11 @@ use bevy::{
     prelude::*,
 };
 
-use crate::configuration::{
-    AppExt, CommandsExt, DespawnSystems, SimulationDescription, SimulationMeta, Timestep,
-    TimesteppedSystems,
+use crate::{
+    configuration::{
+        AppExt, CommandsExt, DespawnSystems, SimulationMeta, Timestep, TimesteppedSystems,
+    },
+    ui::SimulationDescription,
 };
 
 #[derive(Resource)]
@@ -113,7 +115,7 @@ fn despawn(mut commands: Commands, boxes: Query<Entity, With<Box>>) {
 fn spawn(
     timestep: In<Timestep>,
     mut commands: Commands,
-    mut description: Single<&mut TextSpan, With<SimulationDescription>>,
+    mut description: Single<&mut Text, With<SimulationDescription>>,
 ) {
     **description = "Moving box controls: 'A', 'Left', 'D', 'Right'".into();
 
