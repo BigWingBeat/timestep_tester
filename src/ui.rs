@@ -1,4 +1,5 @@
 use bevy::{
+    ecs::system::{IntoObserverSystem, ObserverSystem},
     feathers::{
         self,
         controls::{checkbox, radio},
@@ -18,6 +19,22 @@ pub struct SimulationDescription;
 
 #[derive(Component)]
 struct SimulationRadioButton(ActiveSimulation);
+
+fn toggle_timestep(timestep: ActiveTimesteps) -> impl ObserverSystem<ValueChange<bool>, ()> {
+    IntoObserverSystem::into_system(
+        move |on: On<ValueChange<bool>>,
+              mut active_timesteps: ResMut<ActiveTimesteps>,
+              mut commands: Commands| {
+            active_timesteps.set(timestep, on.value);
+            if on.value {
+                commands.entity(on.source).insert(Checked);
+            } else {
+                commands.entity(on.source).remove::<Checked>();
+            }
+            commands.run_system_cached(respawn);
+        },
+    )
+}
 
 pub fn plugin(app: &mut App) {
     app.insert_resource(UiTheme(create_dark_theme()))
@@ -91,67 +108,22 @@ fn setup(mut commands: Commands) {
                 children![
                     Text::new("Timestep Toggles:"),
                     checkbox(
-                        observe(
-                            |on: On<ValueChange<bool>>,
-                             mut active_timesteps: ResMut<ActiveTimesteps>,
-                             mut commands: Commands| {
-                                active_timesteps.toggle(ActiveTimesteps::NO_DELTA);
-                                if on.value {
-                                    commands.entity(on.source).insert(Checked);
-                                } else {
-                                    commands.entity(on.source).remove::<Checked>();
-                                }
-                                commands.run_system_cached(respawn);
-                            }
-                        ),
+                        observe(toggle_timestep(ActiveTimesteps::NO_DELTA)),
                         Spawn(Text::new("No Delta Time"))
                     ),
                     checkbox(
-                        observe(
-                            |on: On<ValueChange<bool>>,
-                             mut active_timesteps: ResMut<ActiveTimesteps>,
-                             mut commands: Commands| {
-                                active_timesteps.toggle(ActiveTimesteps::VARIABLE_DELTA);
-                                if on.value {
-                                    commands.entity(on.source).insert(Checked);
-                                } else {
-                                    commands.entity(on.source).remove::<Checked>();
-                                }
-                                commands.run_system_cached(respawn);
-                            }
-                        ),
+                        observe(toggle_timestep(ActiveTimesteps::VARIABLE_DELTA)),
                         Spawn(Text::new("Variable Delta Time"))
                     ),
                     checkbox(
-                        observe(
-                            |on: On<ValueChange<bool>>,
-                             mut active_timesteps: ResMut<ActiveTimesteps>,
-                             mut commands: Commands| {
-                                active_timesteps.toggle(ActiveTimesteps::SEMI_FIXED);
-                                if on.value {
-                                    commands.entity(on.source).insert(Checked);
-                                } else {
-                                    commands.entity(on.source).remove::<Checked>();
-                                }
-                                commands.run_system_cached(respawn);
-                            }
+                        (
+                            Checked,
+                            observe(toggle_timestep(ActiveTimesteps::SEMI_FIXED)),
                         ),
                         Spawn(Text::new("Semi-Fixed Timestep"))
                     ),
                     checkbox(
-                        observe(
-                            |on: On<ValueChange<bool>>,
-                             mut active_timesteps: ResMut<ActiveTimesteps>,
-                             mut commands: Commands| {
-                                active_timesteps.toggle(ActiveTimesteps::FIXED);
-                                if on.value {
-                                    commands.entity(on.source).insert(Checked);
-                                } else {
-                                    commands.entity(on.source).remove::<Checked>();
-                                }
-                                commands.run_system_cached(respawn);
-                            }
-                        ),
+                        observe(toggle_timestep(ActiveTimesteps::FIXED)),
                         Spawn(Text::new("Fixed Timestep"))
                     ),
                 ]
