@@ -36,6 +36,9 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
     let dt_max = config.dt_max;
     let count_max = config.count_max;
 
+    // This seems to work
+    let pixel_width = dpdx(in.uv.x) * 2.0;
+
     // The general algorithm is highly inspired by
     // <https://asawicki.info/news_1758_an_idea_for_visualization_of_frame_times>
 
@@ -47,7 +50,8 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
 
         var frame_width: f32;
         if config.proportional_width == 1u {
-            frame_width = (dt / dt_min) / f32(len);
+            // Very high framerates cause very small widths, too small to see, so cap the width appropriately
+            frame_width = max((dt / dt_min) / f32(len), pixel_width);
         } else {
             frame_width = 0.015;
         }
