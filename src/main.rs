@@ -4,12 +4,15 @@ use bevy::{
 };
 use clap::{Parser, ValueEnum};
 
+use crate::timestep::SemiFixed;
+
 mod configuration;
 mod lorenz_attractor;
 mod mouse_cursor;
 mod moving_box;
 mod timestep;
 mod ui;
+mod update_cadence;
 
 #[derive(Clone, Copy, ValueEnum)]
 enum Mode {
@@ -43,6 +46,7 @@ fn main() -> AppExit {
             moving_box::plugin,
             timestep::plugin,
             ui::plugin,
+            update_cadence::UpdateCadencePlugin::default().add_schedule(SemiFixed),
         ))
         .run()
 }
