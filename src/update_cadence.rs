@@ -263,7 +263,7 @@ fn setup(
                                 ..default()
                             }),
                             counts: buffers.add(ShaderStorageBuffer {
-                                data: None,
+                                data: Some(vec![0, 0, 0, 0]),
                                 ..default()
                             }),
                             config: UpdateCadenceGraphConfigUniform::new(
