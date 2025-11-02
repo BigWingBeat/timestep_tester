@@ -232,10 +232,12 @@ fn setup(
                     Pickable::IGNORE,
                 ))
                 .with_children(|p| {
-                    p.spawn((TextSpan::new("Update cadence for "), Pickable::IGNORE))
+                    p.spawn((TextSpan::new("Cadence: "), Pickable::IGNORE))
                         .with_child((TextSpan::default(), ScheduleNameText));
 
-                    p.spawn((TextSpan::new("Recent max updates: "), Pickable::IGNORE))
+                    p.spawn(TextSpan::new('\n'));
+
+                    p.spawn((TextSpan::new("Recent max: "), Pickable::IGNORE))
                         .with_child((TextSpan::default(), RecentMaxUpdatesText));
                 });
 
@@ -299,7 +301,7 @@ fn flush_counts(mut counts: ResMut<ScheduleUpdateCounts>) {
 }
 
 fn update_max_updates(
-    query: Query<(&UpdateCadenceConfig, &Children), Changed<UpdateCadenceConfig>>,
+    query: Query<(&UpdateCadenceConfig, &Children)>,
     is_text_root: Query<Has<Text>>,
     is_max_updates: Query<Has<RecentMaxUpdatesText>>,
     update_counts: Res<ScheduleUpdateCounts>,

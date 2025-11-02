@@ -52,10 +52,11 @@ fn fragment(in: UiVertexOutput) -> @location(0) vec4<f32> {
             frame_width = 0.015;
         }
 
-        // let frame_height_factor = f32(count) / f32(count_max);
-        let frame_height_factor = log2(f32(count)) / f32(count_max);
+        let frame_height_factor = f32(count) / f32(count_max);
+        // let frame_height_factor = log2(f32(count)) / f32(count_max);
         let frame_height_factor_norm = min(max(0.0, frame_height_factor), 1.0);
-        let frame_height = mix(0.0, 1.0, frame_height_factor_norm);
+        // let frame_height = mix(0.0, 1.0, frame_height_factor_norm);
+        let frame_height = frame_height_factor_norm;
 
         let size = vec2(frame_width, frame_height) / 2.0;
         let offset = vec2(1.0 - graph_width - size.x, 1. - size.y);
