@@ -150,7 +150,7 @@ fn spawn(
                 drag: 100.0,
             },
             Box(Aabb2d::new(Vec2::ZERO, Vec2::splat(MOVING_BOX_SIZE / 2.0))),
-            Transform::from_translation(Vec3::new(0.0, y, 0.0)),
+            Transform::from_translation(Vec3::new(0.0, y, 1.0)),
             RenderLayers::layer(RENDER_LAYER),
             Sprite::from_color(basic::LIME, Vec2::splat(MOVING_BOX_SIZE)),
         ),
