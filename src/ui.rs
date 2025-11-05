@@ -1,44 +1,22 @@
 use bevy::{
-    ecs::system::{IntoObserverSystem, ObserverSystem},
-    feathers::{
-        self,
-        controls::{checkbox, radio},
-        dark_theme::create_dark_theme,
-        theme::UiTheme,
-    },
+    feathers::{self, dark_theme::create_dark_theme, theme::UiTheme},
     input_focus::tab_navigation::TabGroup,
     prelude::*,
-    ui::Checked,
-    ui_widgets::{RadioGroup, ValueChange, observe},
     window::PresentMode,
 };
 
-use crate::configuration::{ActiveSimulation, ActiveTimesteps, respawn};
+mod frame_pacing;
+mod simulation;
+mod timesteps;
 
-#[derive(Component)]
-pub struct SimulationDescription;
+pub use simulation::SimulationDescription;
 
-#[derive(Component)]
-struct SimulationRadioButton(ActiveSimulation);
+use crate::ui::{frame_pacing::presentation_modes, simulation::simulation, timesteps::timesteps};
+
+const GAP_SIZE: Val = Val::Px(12.0);
 
 #[derive(Component)]
 struct WindowPresentMode(PresentMode);
-
-fn toggle_timestep(timestep: ActiveTimesteps) -> impl ObserverSystem<ValueChange<bool>, ()> {
-    IntoObserverSystem::into_system(
-        move |on: On<ValueChange<bool>>,
-              mut active_timesteps: ResMut<ActiveTimesteps>,
-              mut commands: Commands| {
-            active_timesteps.set(timestep, on.value);
-            if on.value {
-                commands.entity(on.source).insert(Checked);
-            } else {
-                commands.entity(on.source).remove::<Checked>();
-            }
-            commands.run_system_cached(respawn);
-        },
-    )
-}
 
 pub fn plugin(app: &mut App) {
     app.insert_resource(UiTheme(create_dark_theme()))
@@ -50,141 +28,18 @@ fn setup(mut commands: Commands) {
     commands.spawn((
         Node {
             position_type: PositionType::Absolute,
-            left: Val::Px(12.0),
-            top: Val::Px(120.0),
-            padding: UiRect::all(Val::Px(12.0)),
+            left: GAP_SIZE,
+            top: GAP_SIZE * 10.0,
+            padding: UiRect::all(GAP_SIZE),
             border: UiRect::all(Val::Px(2.0)),
             flex_direction: FlexDirection::Column,
-            row_gap: Val::Px(12.0),
+            row_gap: GAP_SIZE,
             ..default()
         },
         BackgroundColor(feathers::palette::GRAY_1),
         BorderColor::all(feathers::palette::WARM_GRAY_1),
         BorderRadius::all(Val::Px(4.0)),
         TabGroup::default(),
-        children![
-            (
-                Node {
-                    flex_direction: FlexDirection::Column,
-                    ..default()
-                },
-                RadioGroup,
-                observe(
-                    |on: On<ValueChange<Entity>>,
-                     radios: Query<(Entity, &SimulationRadioButton)>,
-                     mut active_simulation: ResMut<ActiveSimulation>,
-                     mut commands: Commands| {
-                        for (entity, simulation) in radios.iter() {
-                            if entity == on.value {
-                                commands.entity(entity).insert(Checked);
-                                *active_simulation = simulation.0;
-                                commands.run_system_cached(respawn);
-                            } else {
-                                commands.entity(entity).remove::<Checked>();
-                            }
-                        }
-                    }
-                ),
-                children![
-                    Text::new("Switch Active Simulation:"),
-                    (radio(
-                        (
-                            Checked,
-                            SimulationRadioButton(ActiveSimulation::LorenzAttractor)
-                        ),
-                        Spawn(Text::new("Lorenz Attractor"))
-                    )),
-                    (radio(
-                        SimulationRadioButton(ActiveSimulation::MouseCursor),
-                        Spawn(Text::new("Mouse Cursor"))
-                    )),
-                    (radio(
-                        SimulationRadioButton(ActiveSimulation::MovingBox),
-                        Spawn(Text::new("Moving Box"))
-                    ))
-                ]
-            ),
-            (
-                Node {
-                    flex_direction: FlexDirection::Column,
-                    ..default()
-                },
-                children![
-                    Text::new("Timestep Toggles:"),
-                    checkbox(
-                        observe(toggle_timestep(ActiveTimesteps::NO_DELTA)),
-                        Spawn(Text::new("No Delta Time"))
-                    ),
-                    checkbox(
-                        observe(toggle_timestep(ActiveTimesteps::VARIABLE_DELTA)),
-                        Spawn(Text::new("Variable Delta Time"))
-                    ),
-                    checkbox(
-                        (
-                            Checked,
-                            observe(toggle_timestep(ActiveTimesteps::SEMI_FIXED)),
-                        ),
-                        Spawn(Text::new("Semi-Fixed Timestep"))
-                    ),
-                    checkbox(
-                        observe(toggle_timestep(ActiveTimesteps::FIXED)),
-                        Spawn(Text::new("Fixed Timestep"))
-                    ),
-                ]
-            ),
-            (
-                Node {
-                    flex_direction: FlexDirection::Column,
-                    ..default()
-                },
-                RadioGroup,
-                observe(
-                    |on: On<ValueChange<Entity>>,
-                     radios: Query<(Entity, &WindowPresentMode)>,
-                     mut windows: Query<&mut Window>,
-                     mut commands: Commands| {
-                        for (entity, mode) in radios.iter() {
-                            if entity == on.value {
-                                commands.entity(entity).insert(Checked);
-                                for mut window in windows.iter_mut() {
-                                    window.present_mode = mode.0;
-                                }
-                                commands.run_system_cached(respawn);
-                            } else {
-                                commands.entity(entity).remove::<Checked>();
-                            }
-                        }
-                    }
-                ),
-                children![
-                    Text::new("Switch Window Presentation Mode"),
-                    (radio(
-                        WindowPresentMode(PresentMode::AutoVsync),
-                        Spawn(Text::new("AutoVsync (FifoRelaxed -> Fifo)"))
-                    )),
-                    (radio(
-                        WindowPresentMode(PresentMode::AutoNoVsync),
-                        Spawn(Text::new("AutoNoVsync (Immediate -> Mailbox -> Fifo)"))
-                    )),
-                    (radio(
-                        WindowPresentMode(PresentMode::Fifo),
-                        Spawn(Text::new("Fifo"))
-                    )),
-                    (radio(
-                        WindowPresentMode(PresentMode::FifoRelaxed),
-                        Spawn(Text::new("FifoRelaxed"))
-                    )),
-                    (radio(
-                        WindowPresentMode(PresentMode::Immediate),
-                        Spawn(Text::new("Immediate"))
-                    )),
-                    (radio(
-                        (Checked, WindowPresentMode(PresentMode::Mailbox)),
-                        Spawn(Text::new("Mailbox"))
-                    )),
-                ]
-            ),
-            (Text::default(), SimulationDescription)
-        ],
+        children![simulation(), timesteps(), presentation_modes(),],
     ));
 }
