@@ -7,7 +7,7 @@ use bevy::{
 
 use crate::{
     configuration::{ActiveSimulation, respawn},
-    ui::GAP_SIZE,
+    ui::describe,
 };
 
 #[derive(Component)]
@@ -16,12 +16,9 @@ pub struct SimulationDescription;
 #[derive(Component)]
 struct SimulationRadioButton(ActiveSimulation);
 
-pub fn simulation() -> impl Bundle {
+pub fn simulation(root: impl Bundle) -> impl Bundle {
     (
-        Node {
-            flex_direction: FlexDirection::Column,
-            ..default()
-        },
+        root,
         RadioGroup,
         observe(
             |on: On<ValueChange<Entity>>,
@@ -41,30 +38,31 @@ pub fn simulation() -> impl Bundle {
         ),
         children![
             Text::new("Switch Active Simulation:"),
-            (radio(
-                (
-                    Checked,
-                    SimulationRadioButton(ActiveSimulation::LorenzAttractor)
+            describe(
+                radio(
+                    (
+                        Checked,
+                        SimulationRadioButton(ActiveSimulation::LorenzAttractor)
+                    ),
+                    Spawn(Text::new("Lorenz Attractor"))
                 ),
-                Spawn(Text::new("Lorenz Attractor"))
-            )),
-            (radio(
-                SimulationRadioButton(ActiveSimulation::MouseCursor),
-                Spawn(Text::new("Mouse Cursor"))
-            )),
-            (radio(
-                SimulationRadioButton(ActiveSimulation::MovingBox),
-                Spawn(Text::new("Moving Box"))
-            )),
-            (
-                // Add a gap between the description and the radio buttons
-                Node {
-                    margin: UiRect::top(GAP_SIZE),
-                    ..default()
-                },
-                Text::default(),
-                SimulationDescription
+                "A chaotic system that provides an exaggerated visualisation of non-determinism."
             ),
+            describe(
+                radio(
+                    SimulationRadioButton(ActiveSimulation::MouseCursor),
+                    Spawn(Text::new("Mouse Cursor"))
+                ),
+                "Boxes that follow the mouse, useful for visualising latency."
+            ),
+            describe(
+                radio(
+                    SimulationRadioButton(ActiveSimulation::MovingBox),
+                    Spawn(Text::new("Moving Box"))
+                ),
+                "Fast-moving, high-contrast images, useful for visualising screen tearing and stuttering."
+            ),
+            (Text::default(), SimulationDescription),
         ],
     )
 }

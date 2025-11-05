@@ -6,7 +6,10 @@ use bevy::{
     ui_widgets::{ValueChange, observe},
 };
 
-use crate::configuration::{ActiveTimesteps, respawn};
+use crate::{
+    configuration::{ActiveTimesteps, respawn},
+    ui::describe,
+};
 
 fn toggle_timestep(timestep: ActiveTimesteps) -> impl ObserverSystem<ValueChange<bool>, ()> {
     IntoObserverSystem::into_system(
@@ -24,33 +27,42 @@ fn toggle_timestep(timestep: ActiveTimesteps) -> impl ObserverSystem<ValueChange
     )
 }
 
-pub fn timesteps() -> impl Bundle {
+pub fn timesteps(root: impl Bundle) -> impl Bundle {
     (
-        Node {
-            flex_direction: FlexDirection::Column,
-            ..default()
-        },
+        root,
         children![
             Text::new("Timestep Toggles:"),
-            checkbox(
-                observe(toggle_timestep(ActiveTimesteps::NO_DELTA)),
-                Spawn(Text::new("No Delta Time"))
-            ),
-            checkbox(
-                observe(toggle_timestep(ActiveTimesteps::VARIABLE_DELTA)),
-                Spawn(Text::new("Variable Delta Time"))
-            ),
-            checkbox(
-                (
-                    Checked,
-                    observe(toggle_timestep(ActiveTimesteps::SEMI_FIXED)),
+            describe(
+                checkbox(
+                    observe(toggle_timestep(ActiveTimesteps::NO_DELTA)),
+                    Spawn(Text::new("No Delta Time"))
                 ),
-                Spawn(Text::new("Semi-Fixed Timestep"))
+                "Updates every frame, without utilising delta time. Simulation speed is directly tied to framerate."
             ),
-            checkbox(
-                observe(toggle_timestep(ActiveTimesteps::FIXED)),
-                Spawn(Text::new("Fixed Timestep"))
+            describe(
+                checkbox(
+                    observe(toggle_timestep(ActiveTimesteps::VARIABLE_DELTA)),
+                    Spawn(Text::new("Variable Delta Time"))
+                ),
+                "Updates every frame, utilising delta time. Non-deterministic, destabilizes simulation at extremely low framerates."
             ),
+            describe(
+                checkbox(
+                    (
+                        Checked,
+                        observe(toggle_timestep(ActiveTimesteps::SEMI_FIXED)),
+                    ),
+                    Spawn(Text::new("Semi-Fixed Timestep"))
+                ),
+                "Updates one or more times per frame, utilising a capped delta time. Non-deterministic, breaks down with extremely slow simulation updates."
+            ),
+            describe(
+                checkbox(
+                    observe(toggle_timestep(ActiveTimesteps::FIXED)),
+                    Spawn(Text::new("Fixed Timestep"))
+                ),
+                "Updates zero or more times per frame, utilising a fixed delta time. Can be deterministic, causes visual issues, breaks down with extremely slow simulation updates."
+            )
         ],
     )
 }

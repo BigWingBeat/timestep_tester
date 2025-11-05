@@ -6,14 +6,14 @@ use bevy::{
     window::PresentMode,
 };
 
-use crate::{configuration::respawn, ui::WindowPresentMode};
+use crate::{configuration::respawn, ui::describe};
 
-pub fn presentation_modes() -> impl Bundle {
+#[derive(Component)]
+struct WindowPresentMode(PresentMode);
+
+pub fn presentation_modes(root: impl Bundle) -> impl Bundle {
     (
-        Node {
-            flex_direction: FlexDirection::Column,
-            ..default()
-        },
+        root,
         RadioGroup,
         observe(
             |on: On<ValueChange<Entity>>,
@@ -34,31 +34,49 @@ pub fn presentation_modes() -> impl Bundle {
             },
         ),
         children![
-            Text::new("Switch Window Presentation Mode"),
-            (radio(
-                WindowPresentMode(PresentMode::AutoVsync),
-                Spawn(Text::new("AutoVsync (FifoRelaxed -> Fifo)"))
-            )),
-            (radio(
-                WindowPresentMode(PresentMode::AutoNoVsync),
-                Spawn(Text::new("AutoNoVsync (Immediate -> Mailbox -> Fifo)"))
-            )),
-            (radio(
-                WindowPresentMode(PresentMode::Fifo),
-                Spawn(Text::new("Fifo"))
-            )),
-            (radio(
-                WindowPresentMode(PresentMode::FifoRelaxed),
-                Spawn(Text::new("FifoRelaxed"))
-            )),
-            (radio(
-                WindowPresentMode(PresentMode::Immediate),
-                Spawn(Text::new("Immediate"))
-            )),
-            (radio(
-                (Checked, WindowPresentMode(PresentMode::Mailbox)),
-                Spawn(Text::new("Mailbox"))
-            )),
+            Text::new("Switch Window Presentation Mode:"),
+            describe(
+                radio(
+                    WindowPresentMode(PresentMode::AutoVsync),
+                    Spawn(Text::new("AutoVsync"))
+                ),
+                "Chooses FifoRelaxed -> Fifo based on availability."
+            ),
+            describe(
+                radio(
+                    WindowPresentMode(PresentMode::AutoNoVsync),
+                    Spawn(Text::new("AutoNoVsync"))
+                ),
+                "Chooses Immediate -> Mailbox -> Fifo based on availability."
+            ),
+            describe(
+                radio(
+                    WindowPresentMode(PresentMode::Fifo),
+                    Spawn(Text::new("Fifo"))
+                ),
+                "Vsync with a ~3 frame queue. Adds latency, no screen tearing."
+            ),
+            describe(
+                radio(
+                    WindowPresentMode(PresentMode::FifoRelaxed),
+                    Spawn(Text::new("FifoRelaxed"))
+                ),
+                "\"Adaptive\" Vsync with a ~3 frame queue. Adds latency, causes screen tearing."
+            ),
+            describe(
+                radio(
+                    WindowPresentMode(PresentMode::Immediate),
+                    Spawn(Text::new("Immediate"))
+                ),
+                "No vsync, no frame queue. Low latency, causes screen tearing."
+            ),
+            describe(
+                radio(
+                    (Checked, WindowPresentMode(PresentMode::Mailbox)),
+                    Spawn(Text::new("Mailbox"))
+                ),
+                "\"Fast\" vsync, no frame queue. Low latency, no screen tearing."
+            ),
         ],
     )
 }
