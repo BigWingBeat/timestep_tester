@@ -28,6 +28,7 @@ pub use simulation::SimulationDescription;
 use crate::ui::{frame_pacing::presentation_modes, simulation::simulation, timesteps::timesteps};
 
 const GAP_SIZE: Val = Val::Px(12.0);
+const MAX_WIDTH: Val = Val::Px(720.0);
 
 /// Hack
 struct Remove<T>(PhantomData<T>);
@@ -56,6 +57,7 @@ fn list(node: Node) -> impl Bundle {
         Node {
             padding: UiRect::all(GAP_SIZE),
             border: UiRect::all(Val::Px(2.0)).with_top(Val::ZERO),
+            max_width: MAX_WIDTH,
             flex_direction: FlexDirection::Column,
             row_gap: GAP_SIZE,
             ..node
@@ -174,7 +176,7 @@ fn setup(mut commands: Commands) {
             position_type: PositionType::Absolute,
             left: GAP_SIZE,
             top: GAP_SIZE * 10.0,
-            max_width: Val::Px(720.0),
+            max_width: MAX_WIDTH,
             flex_direction: FlexDirection::Column,
             ..default()
         },
