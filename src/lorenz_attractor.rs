@@ -69,23 +69,23 @@ impl Colours {
         let colours = match timestep {
             Timestep::NoDelta => [
                 tailwind::ROSE_500.into(),
-                tailwind::ROSE_900.into(),
-                tailwind::RED_900.into(),
+                tailwind::ROSE_800.into(),
+                tailwind::RED_800.into(),
             ],
             Timestep::VariableDelta => [
-                tailwind::AMBER_500.into(),
-                tailwind::AMBER_900.into(),
-                tailwind::YELLOW_900.into(),
+                tailwind::GREEN_500.into(),
+                tailwind::GREEN_800.into(),
+                tailwind::EMERALD_800.into(),
             ],
             Timestep::SemiFixed => [
                 tailwind::SKY_500.into(),
-                tailwind::SKY_900.into(),
-                tailwind::BLUE_900.into(),
+                tailwind::SKY_800.into(),
+                tailwind::BLUE_800.into(),
             ],
             Timestep::Fixed => [
-                tailwind::GREEN_500.into(),
-                tailwind::GREEN_900.into(),
-                tailwind::EMERALD_900.into(),
+                tailwind::FUCHSIA_500.into(),
+                tailwind::FUCHSIA_800.into(),
+                tailwind::PURPLE_800.into(),
             ],
         };
         Self::new(colours, INTERP_SECONDS)
