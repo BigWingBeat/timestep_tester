@@ -32,6 +32,12 @@ pub enum Timestep {
     Fixed = 8,
 }
 
+impl Timestep {
+    pub fn index(self) -> usize {
+        (self as u8).ilog2() as usize
+    }
+}
+
 pub trait CommandsExt {
     fn spawn_with_timestep(&mut self, timestep: &Timestep, bundle: impl Bundle) -> EntityCommands;
 }

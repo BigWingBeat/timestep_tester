@@ -124,7 +124,7 @@ fn spawn(
 
     const BASE_Y: f32 = -350.0;
 
-    let y = ((timestep.0 as u8).ilog2() as f32 * BOX_SIZE) + BASE_Y;
+    let x = (timestep.index() as f32 * BOX_SIZE) + BASE_X;
 
     // Sensor boxes
     for i in -2..=2 {

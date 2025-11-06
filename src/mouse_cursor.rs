@@ -135,7 +135,7 @@ RED: Fixed Timestep"
         (
             Cursor,
             Mesh3d(mesh.0.clone()),
-            MeshMaterial3d(material.0[(timestep.0 as u8).ilog2() as usize].clone()),
+            MeshMaterial3d(material.0[timestep.index()].clone()),
             RenderLayers::layer(RENDER_LAYER),
         ),
     );
