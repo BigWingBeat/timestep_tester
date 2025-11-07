@@ -13,7 +13,7 @@ use bevy::{
     },
     prelude::*,
     ui::Checked,
-    ui_widgets::{RadioButton, RadioGroup, ValueChange, observe},
+    ui_widgets::{Button, RadioButton, RadioGroup, ValueChange, observe},
 };
 
 use crate::ui::{GAP_SIZE, MAX_WIDTH};
