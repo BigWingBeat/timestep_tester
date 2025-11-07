@@ -19,13 +19,17 @@ use bevy::{
     ui_widgets::{Button, RadioButton, RadioGroup, ValueChange, observe},
 };
 
-mod frame_pacing;
+mod presentation_modes;
 mod simulation;
 mod timesteps;
+mod update_rate;
 
 pub use simulation::SimulationDescription;
 
-use crate::ui::{frame_pacing::presentation_modes, simulation::simulation, timesteps::timesteps};
+use crate::ui::{
+    presentation_modes::presentation_modes, simulation::simulation, timesteps::timesteps,
+    update_rate::update_rate,
+};
 
 const GAP_SIZE: Val = Val::Px(12.0);
 const MAX_WIDTH: Val = Val::Px(720.0);
@@ -196,7 +200,14 @@ fn setup(mut commands: Commands) {
                     display: Display::None,
                     ..default()
                 }))
-            )
+            ),
+            (
+                "Update Rate",
+                update_rate(list(Node {
+                    display: Display::None,
+                    ..default()
+                }))
+            ),
         ],
     ));
 }
