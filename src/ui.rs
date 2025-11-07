@@ -82,97 +82,102 @@ impl PartialEq for TabName {
 impl Eq for TabName {}
 
 macro_rules! tabs {
-	[$(($tab:literal, $node:expr)), *$(,)?] => {{
-        children![
-        (
-            Node::default(),
-            RadioGroup,
-            observe(
-                |on: On<ValueChange<Entity>>,
-                 mut radios: Query<(Entity, &mut ButtonVariant, &TabName)>,
-                 mut tabs: Query<(&mut Node, &TabName), Without<RadioButton>>,
-                 mut commands: Commands| {
-                    for (entity, mut variant, radio_name) in radios.iter_mut() {
-                        if entity == on.value {
-                            *variant = ButtonVariant::Primary;
-                            commands.entity(entity).insert(Checked);
-                            for (mut node, tab_name) in tabs.iter_mut() {
-                                if radio_name == tab_name {
-                                    node.display = Display::Flex;
-                                } else {
-                                    node.display = Display::None;
+	[$(($tab:literal, $node:expr)), *$(,)?] => {
+        Children::spawn((
+            Spawn((
+                Node::default(),
+                RadioGroup,
+                observe(
+                    |on: On<ValueChange<Entity>>,
+                    mut radios: Query<(Entity, &mut ButtonVariant, &TabName)>,
+                    mut tabs: Query<(&mut Node, &TabName), Without<RadioButton>>,
+                    mut commands: Commands| {
+                        for (entity, mut variant, radio_name) in radios.iter_mut() {
+                            if entity == on.value {
+                                *variant = ButtonVariant::Primary;
+                                commands.entity(entity).insert(Checked);
+                                for (mut node, tab_name) in tabs.iter_mut() {
+                                    if radio_name == tab_name {
+                                        node.display = Display::Flex;
+                                    } else {
+                                        node.display = Display::None;
+                                    }
                                 }
+                            } else {
+                                *variant = ButtonVariant::Normal;
+                                commands.entity(entity).remove::<Checked>();
                             }
-                        } else {
-                            *variant = ButtonVariant::Normal;
-                            commands.entity(entity).remove::<Checked>();
                         }
-                    }
-                },
-            ),
-            {
-                let [first, middle @ .., last] = [$($tab),*];
-                let [first_name, middle_name @ .., last_name] = [$(TabName($tab)),*];
-                Children::spawn((
-                    Spawn(button(
-                        ButtonProps {
-                            variant: ButtonVariant::Primary,
-                            corners: RoundedCorners::TopLeft,
-                        },
-                        (RadioButton, remove::<Button>(), first_name),
-                        Spawn(Text::new(first)),
-                    )),
-                    SpawnIter(middle.into_iter().zip(middle_name).map(|(middle, name)| {
+                    },
+                ),
+                {
+                    let [first, middle @ .., last] = [$($tab),*];
+
+                    fn tab_button(props: ButtonProps, name: &'static str) -> impl Bundle {
                         button(
+                            props,
+                            (RadioButton, remove::<Button>(), TabName(name)),
+                            Spawn(Text::new(name)),
+                        )
+                    }
+
+                    Children::spawn((
+                        Spawn(tab_button(
                             ButtonProps {
-                                corners: RoundedCorners::None,
+                                variant: ButtonVariant::Primary,
+                                corners: RoundedCorners::TopLeft,
+                            },
+                            first,
+                        )),
+                        SpawnIter(middle.into_iter().map(|middle| {
+                            tab_button(
+                                ButtonProps {
+                                    corners: RoundedCorners::None,
+                                    ..default()
+                                },
+                                middle,
+                            )
+                        })),
+                        Spawn(tab_button(
+                            ButtonProps {
+                                corners: RoundedCorners::TopRight,
                                 ..default()
                             },
-                            (RadioButton, remove::<Button>(), name),
-                            Spawn(Text::new(middle)),
-                        )
-                    })),
-                    Spawn(button(
-                        ButtonProps {
-                            corners: RoundedCorners::TopRight,
+                            last,
+                        )),
+                    ))
+                },
+            )),
+            Spawn((
+                Node {
+                    padding: UiRect::all(GAP_SIZE),
+                    border: UiRect::all(Val::Px(2.0)).with_top(Val::ZERO),
+                    max_width: MAX_WIDTH,
+                    ..default()
+                },
+                BackgroundColor(feathers::palette::GRAY_1),
+                BorderColor::all(feathers::palette::WARM_GRAY_1),
+                BorderRadius::all(Val::Px(4.0)).with_top(Val::ZERO),
+                {
+                    let mut children = ($(Spawn((
+                        Node {
+                            flex_direction: FlexDirection::Column,
+                            row_gap: GAP_SIZE,
+                            display: Display::None,
                             ..default()
                         },
-                        (RadioButton, remove::<Button>(), last_name),
-                        Spawn(Text::new(last)),
-                    )),
-                ))
-            },
-        ),
-        (
-            Node {
-                padding: UiRect::all(GAP_SIZE),
-                border: UiRect::all(Val::Px(2.0)).with_top(Val::ZERO),
-                max_width: MAX_WIDTH,
-                ..default()
-            },
-            BackgroundColor(feathers::palette::GRAY_1),
-            BorderColor::all(feathers::palette::WARM_GRAY_1),
-            BorderRadius::all(Val::Px(4.0)).with_top(Val::ZERO),
-            {
-                let mut children = ($(Spawn((
-                    Node {
-                        flex_direction: FlexDirection::Column,
-                        row_gap: GAP_SIZE,
-                        display: Display::None,
-                        ..default()
-                    },
-                    $node,
-                    TabName($tab),
-                ))),*);
+                        $node,
+                        TabName($tab),
+                    ))),*);
 
-                // Show the first (active by default) tab
-                children.0.0.0.display = Display::Flex;
+                    // Show the first (active by default) tab
+                    children.0.0.0.display = Display::Flex;
 
-                Children::spawn(children)
-            },
-        ),
-    ]
-    }};
+                    Children::spawn(children)
+                },
+            )),
+        ))
+    };
 }
 
 pub fn plugin(app: &mut App) {
