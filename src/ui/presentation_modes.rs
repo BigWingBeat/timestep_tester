@@ -11,9 +11,8 @@ use crate::{configuration::respawn, ui::describe};
 #[derive(Component)]
 struct WindowPresentMode(PresentMode);
 
-pub fn presentation_modes(root: impl Bundle) -> impl Bundle {
+pub fn presentation_modes() -> impl Bundle {
     (
-        root,
         RadioGroup,
         observe(
             |on: On<ValueChange<Entity>>,

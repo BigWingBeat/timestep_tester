@@ -16,9 +16,8 @@ pub struct SimulationDescription;
 #[derive(Component)]
 struct SimulationRadioButton(ActiveSimulation);
 
-pub fn simulation(root: impl Bundle) -> impl Bundle {
+pub fn simulation() -> impl Bundle {
     (
-        root,
         RadioGroup,
         observe(
             |on: On<ValueChange<Entity>>,
