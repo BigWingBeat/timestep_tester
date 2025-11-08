@@ -34,6 +34,9 @@ fn describe(node: impl Bundle, description: impl Into<String>) -> impl Bundle {
     )
 }
 
+#[derive(Component, Default)]
+struct TopLevelTabs;
+
 pub fn plugin(app: &mut App) {
     app.add_plugins(update_rate::plugin)
         .insert_resource(UiTheme(create_dark_theme()))
@@ -53,6 +56,7 @@ fn setup(mut commands: Commands) {
         },
         TabGroup::default(),
         tabs![
+            TopLevelTabs,
             ("Simulation", simulation()),
             ("Timesteps", timesteps()),
             ("Presentation Modes", presentation_modes()),

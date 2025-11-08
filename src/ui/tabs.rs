@@ -39,6 +39,11 @@ fn remove<T>() -> Remove<T> {
     Remove(PhantomData)
 }
 
+/// Used to distinguish between unrelated sets of tabs in queries
+pub(super) trait TabsIdent: Component + Default {}
+
+impl<T> TabsIdent for T where T: Component + Default {}
+
 #[derive(Component)]
 struct TabName(&'static str);
 
@@ -51,15 +56,15 @@ impl PartialEq for TabName {
 
 impl Eq for TabName {}
 
-fn tab_button(props: ButtonProps, name: &'static str) -> impl Bundle {
+fn tab_button<T: TabsIdent>(props: ButtonProps, name: &'static str) -> impl Bundle {
     button(
         props,
-        (RadioButton, remove::<Button>(), TabName(name)),
+        (RadioButton, remove::<Button>(), TabName(name), T::default()),
         Spawn(Text::new(name)),
     )
 }
 
-pub(super) fn tab_buttons<const MIDDLE: usize>(
+pub(super) fn tab_buttons<T: TabsIdent, const MIDDLE: usize>(
     first: &'static str,
     middle: [&'static str; MIDDLE],
     last: &'static str,
@@ -69,8 +74,8 @@ pub(super) fn tab_buttons<const MIDDLE: usize>(
         RadioGroup,
         observe(
             |on: On<ValueChange<Entity>>,
-             mut radios: Query<(Entity, &mut ButtonVariant, &TabName)>,
-             mut tabs: Query<(&mut Node, &TabName), Without<RadioButton>>,
+             mut radios: Query<(Entity, &mut ButtonVariant, &TabName), With<T>>,
+             mut tabs: Query<(&mut Node, &TabName), (Without<RadioButton>, With<T>)>,
              mut commands: Commands| {
                 for (entity, mut variant, radio_name) in radios.iter_mut() {
                     if entity == on.value {
@@ -91,7 +96,7 @@ pub(super) fn tab_buttons<const MIDDLE: usize>(
             },
         ),
         Children::spawn((
-            Spawn(tab_button(
+            Spawn(tab_button::<T>(
                 ButtonProps {
                     variant: ButtonVariant::Primary,
                     corners: RoundedCorners::TopLeft,
@@ -99,7 +104,7 @@ pub(super) fn tab_buttons<const MIDDLE: usize>(
                 first,
             )),
             SpawnIter(middle.into_iter().map(|middle| {
-                tab_button(
+                tab_button::<T>(
                     ButtonProps {
                         corners: RoundedCorners::None,
                         ..default()
@@ -107,7 +112,7 @@ pub(super) fn tab_buttons<const MIDDLE: usize>(
                     middle,
                 )
             })),
-            Spawn(tab_button(
+            Spawn(tab_button::<T>(
                 ButtonProps {
                     corners: RoundedCorners::TopRight,
                     ..default()
@@ -133,7 +138,7 @@ pub(super) fn tab_contents(tabs: impl Bundle) -> impl Bundle {
     )
 }
 
-pub(super) fn single_tab(name: &'static str) -> (Node, impl Bundle) {
+pub(super) fn single_tab<T: TabsIdent>(name: &'static str) -> (Node, impl Bundle) {
     (
         Node {
             flex_direction: FlexDirection::Column,
@@ -141,19 +146,19 @@ pub(super) fn single_tab(name: &'static str) -> (Node, impl Bundle) {
             display: Display::None,
             ..default()
         },
-        TabName(name),
+        (TabName(name), T::default()),
     )
 }
 
 macro_rules! tabs {
-	[$(($tab:literal, $node:expr)), *$(,)?] => {
+	[$ident:ty, $(($tab:literal, $node:expr)), *$(,)?] => {
         Children::spawn((
 			Spawn({
 				let [first, middle @ .., last] = [$($tab),*];
-				crate::ui::tabs::tab_buttons(first, middle, last)
+				crate::ui::tabs::tab_buttons::<$ident, _>(first, middle, last)
 			}),
 			Spawn({
-				let mut children = ($(Spawn((crate::ui::tabs::single_tab($tab), $node))),*);
+				let mut children = ($(Spawn((crate::ui::tabs::single_tab::<$ident>($tab), $node))),*);
 
 				// Show the first (active by default) tab
 				children.0.0.0.0.display = Display::Flex;
