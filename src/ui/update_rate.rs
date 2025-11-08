@@ -4,7 +4,7 @@ use bevy::{
     ecs::system::{IntoObserverSystem, ObserverSystem},
     feathers::controls::{SliderProps, checkbox, radio, slider},
     prelude::*,
-    ui::Checked,
+    ui::{Checked, InteractionDisabled},
     ui_widgets::{RadioGroup, SliderValue, ValueChange, observe},
     winit::{UpdateMode, WinitSettings},
 };
@@ -38,18 +38,28 @@ struct Reactive;
 trait FocusType: Component {
     const VALUE: Focus;
     const DESCRIPTION: &'static str;
+
+    fn reactive_widget_disabled() -> impl Bundle;
 }
 
 impl FocusType for Focused {
     const VALUE: Focus = Focus::Focused;
     const DESCRIPTION: &'static str =
         "Settings for how the app updates while the window is in focus.";
+
+    fn reactive_widget_disabled() -> impl Bundle {
+        (ReactiveConfigWidget, Focused, InteractionDisabled)
+    }
 }
 
 impl FocusType for Unfocused {
     const VALUE: Focus = Focus::Unfocused;
     const DESCRIPTION: &'static str =
         "Settings for how the app updates while the window is unfocused.";
+
+    fn reactive_widget_disabled() -> impl Bundle {
+        (ReactiveConfigWidget, Unfocused)
+    }
 }
 
 trait DefaultVariantChecked {
@@ -84,6 +94,15 @@ impl DefaultVariantChecked for (Unfocused, Reactive) {
 enum UpdateModeVariant {
     Continuous,
     Reactive,
+}
+
+impl UpdateModeVariant {
+    fn toggle_reactive_disabled(self, mut entity: EntityCommands) {
+        match self {
+            Self::Continuous => entity.insert(InteractionDisabled),
+            Self::Reactive => entity.remove::<InteractionDisabled>(),
+        };
+    }
 }
 
 /// `UpdateMode` is an enum that doesn't retain the reactive mode configuration when set to continuous,
@@ -188,6 +207,9 @@ fn toggle_reactive(
     )
 }
 
+#[derive(Component)]
+struct ReactiveConfigWidget;
+
 #[derive(Component, Default)]
 struct UpdateModeTabs;
 
@@ -226,12 +248,16 @@ where
         observe(
             move |on: On<ValueChange<Entity>>,
                   radios: Query<(Entity, &UpdateModeVariant), With<F>>,
+                  reactive_widgets: Query<Entity, (With<ReactiveConfigWidget>, With<F>)>,
                   mut settings: ResMut<CachedWinitSettings>,
                   mut commands: Commands| {
                 for (entity, &variant) in radios.iter() {
                     if entity == on.value {
                         commands.entity(entity).insert(Checked);
                         focus.mode(&mut settings).variant = variant;
+                        for entity in reactive_widgets.iter() {
+                            variant.toggle_reactive_disabled(commands.entity(entity));
+                        }
                     } else {
                         commands.entity(entity).remove::<Checked>();
                     }
@@ -264,19 +290,24 @@ where
                     min: 1.0,
                     max: 1000.0
                 },
-                observe(
-                    move |on: On<ValueChange<f32>>,
-                          mut commands: Commands,
-                          mut settings: ResMut<CachedWinitSettings>| {
-                        commands.entity(on.source).insert(SliderValue(on.value));
-                        focus.mode(&mut settings).wait = Duration::from_secs_f32(on.value.recip());
-                    }
+                (
+                    F::reactive_widget_disabled(),
+                    observe(
+                        move |on: On<ValueChange<f32>>,
+                              mut commands: Commands,
+                              mut settings: ResMut<CachedWinitSettings>| {
+                            commands.entity(on.source).insert(SliderValue(on.value));
+                            focus.mode(&mut settings).wait =
+                                Duration::from_secs_f32(on.value.recip());
+                        }
+                    )
                 ),
             ),
             describe(
                 checkbox(
                     (
                         Checked,
+                        F::reactive_widget_disabled(),
                         observe(toggle_reactive(focus, ReactiveEvents::Device))
                     ),
                     Spawn(Text::new("Device Events"))
@@ -287,6 +318,7 @@ where
                 checkbox(
                     (
                         Checked,
+                        F::reactive_widget_disabled(),
                         observe(toggle_reactive(focus, ReactiveEvents::User))
                     ),
                     Spawn(Text::new("User Events"))
@@ -297,6 +329,7 @@ where
                 checkbox(
                     (
                         Checked,
+                        F::reactive_widget_disabled(),
                         observe(toggle_reactive(focus, ReactiveEvents::Window))
                     ),
                     Spawn(Text::new("Window Events"))
