@@ -7,7 +7,6 @@ use bevy::{
         world::DeferredWorld,
     },
     feathers::{
-        self,
         controls::{ButtonProps, ButtonVariant, button},
         rounded_corners::RoundedCorners,
     },
@@ -16,7 +15,7 @@ use bevy::{
     ui_widgets::{Button, RadioButton, RadioGroup, ValueChange, observe},
 };
 
-use crate::ui::{GAP_SIZE, MAX_WIDTH};
+use crate::ui::GAP_SIZE;
 
 /// Hack
 struct Remove<T>(PhantomData<T>);
@@ -56,6 +55,32 @@ impl PartialEq for TabName {
 
 impl Eq for TabName {}
 
+#[derive(Clone, Copy)]
+pub(super) enum TabCorners {
+    Top,
+    Both,
+}
+
+impl TabCorners {
+    fn left(self) -> RoundedCorners {
+        match self {
+            Self::Top => RoundedCorners::TopLeft,
+            Self::Both => RoundedCorners::Left,
+        }
+    }
+
+    fn middle(self) -> RoundedCorners {
+        RoundedCorners::None
+    }
+
+    fn right(self) -> RoundedCorners {
+        match self {
+            Self::Top => RoundedCorners::TopRight,
+            Self::Both => RoundedCorners::Right,
+        }
+    }
+}
+
 fn tab_button<T: TabsIdent>(props: ButtonProps, name: &'static str) -> impl Bundle {
     button(
         props,
@@ -65,6 +90,7 @@ fn tab_button<T: TabsIdent>(props: ButtonProps, name: &'static str) -> impl Bund
 }
 
 pub(super) fn tab_buttons<T: TabsIdent, const MIDDLE: usize>(
+    corners: TabCorners,
     first: &'static str,
     middle: [&'static str; MIDDLE],
     last: &'static str,
@@ -99,14 +125,14 @@ pub(super) fn tab_buttons<T: TabsIdent, const MIDDLE: usize>(
             Spawn(tab_button::<T>(
                 ButtonProps {
                     variant: ButtonVariant::Primary,
-                    corners: RoundedCorners::TopLeft,
+                    corners: corners.left(),
                 },
                 first,
             )),
-            SpawnIter(middle.into_iter().map(|middle| {
+            SpawnIter(middle.into_iter().map(move |middle| {
                 tab_button::<T>(
                     ButtonProps {
-                        corners: RoundedCorners::None,
+                        corners: corners.middle(),
                         ..default()
                     },
                     middle,
@@ -114,27 +140,12 @@ pub(super) fn tab_buttons<T: TabsIdent, const MIDDLE: usize>(
             })),
             Spawn(tab_button::<T>(
                 ButtonProps {
-                    corners: RoundedCorners::TopRight,
+                    corners: corners.right(),
                     ..default()
                 },
                 last,
             )),
         )),
-    )
-}
-
-pub(super) fn tab_contents(tabs: impl Bundle) -> impl Bundle {
-    (
-        Node {
-            padding: UiRect::all(GAP_SIZE),
-            border: UiRect::all(Val::Px(2.0)).with_top(Val::ZERO),
-            max_width: MAX_WIDTH,
-            ..default()
-        },
-        BackgroundColor(feathers::palette::GRAY_1),
-        BorderColor::all(feathers::palette::WARM_GRAY_1),
-        BorderRadius::all(Val::Px(4.0)).with_top(Val::ZERO),
-        tabs,
     )
 }
 
@@ -151,23 +162,17 @@ pub(super) fn single_tab<T: TabsIdent>(name: &'static str) -> (Node, impl Bundle
 }
 
 macro_rules! tabs {
-	[$ident:ty, $(($tab:literal, $node:expr)), *$(,)?] => {
-        Children::spawn((
-			Spawn({
-				let [first, middle @ .., last] = [$($tab),*];
-				crate::ui::tabs::tab_buttons::<$ident, _>(first, middle, last)
-			}),
-			Spawn({
-				let mut children = ($(Spawn((crate::ui::tabs::single_tab::<$ident>($tab), $node))),*);
+	[$ident:ty, $corners:expr, $(($tab:literal, $node:expr)), *$(,)?] => {{
+        let [first, middle @ .., last] = [$($tab),*];
+        let buttons = crate::ui::tabs::tab_buttons::<$ident, _>($corners, first, middle, last);
 
-				// Show the first (active by default) tab
-				children.0.0.0.0.display = Display::Flex;
+        let mut contents = ($(Spawn((crate::ui::tabs::single_tab::<$ident>($tab), $node))),*);
 
-				let tabs = Children::spawn(children);
-				crate::ui::tabs::tab_contents(tabs)
-			}),
-		))
-    };
+        // Show the first (active by default) tab
+        contents.0.0.0.0.display = Display::Flex;
+
+        (buttons, contents)
+    }};
 }
 
 pub(super) use tabs;

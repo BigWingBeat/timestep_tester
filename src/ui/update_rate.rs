@@ -9,7 +9,7 @@ use bevy::{
     winit::{UpdateMode, WinitSettings},
 };
 
-use crate::ui::{GAP_SIZE, describe};
+use crate::ui::{TabCorners, describe, tabs};
 
 #[derive(Clone, Copy)]
 enum Focus {
@@ -26,21 +26,30 @@ impl Focus {
     }
 }
 
+#[derive(Component)]
 struct Focused;
+
+#[derive(Component)]
 struct Unfocused;
+
 struct Continuous;
 struct Reactive;
 
-trait FocusType {
+trait FocusType: Component {
     const VALUE: Focus;
+    const DESCRIPTION: &'static str;
 }
 
 impl FocusType for Focused {
     const VALUE: Focus = Focus::Focused;
+    const DESCRIPTION: &'static str =
+        "Settings for how the app updates while the window is in focus.";
 }
 
 impl FocusType for Unfocused {
     const VALUE: Focus = Focus::Unfocused;
+    const DESCRIPTION: &'static str =
+        "Settings for how the app updates while the window is unfocused.";
 }
 
 trait DefaultVariantChecked {
@@ -49,25 +58,25 @@ trait DefaultVariantChecked {
 
 impl DefaultVariantChecked for (Focused, Continuous) {
     fn radio_checked() -> impl Bundle {
-        (Checked, UpdateModeVariant::Continuous)
+        (Checked, Focused, UpdateModeVariant::Continuous)
     }
 }
 
 impl DefaultVariantChecked for (Focused, Reactive) {
     fn radio_checked() -> impl Bundle {
-        UpdateModeVariant::Reactive
+        (Focused, UpdateModeVariant::Reactive)
     }
 }
 
 impl DefaultVariantChecked for (Unfocused, Continuous) {
     fn radio_checked() -> impl Bundle {
-        UpdateModeVariant::Continuous
+        (Unfocused, UpdateModeVariant::Continuous)
     }
 }
 
 impl DefaultVariantChecked for (Unfocused, Reactive) {
     fn radio_checked() -> impl Bundle {
-        (Checked, UpdateModeVariant::Reactive)
+        (Checked, Unfocused, UpdateModeVariant::Reactive)
     }
 }
 
@@ -179,28 +188,30 @@ fn toggle_reactive(
     )
 }
 
+#[derive(Component, Default)]
+struct UpdateModeTabs;
+
 pub fn plugin(app: &mut App) {
     app.init_resource::<CachedWinitSettings>()
         .add_systems(Update, update_winit_settings);
 }
 
 pub fn update_rate() -> impl Bundle {
-    children![
-        describe(
+    let (buttons, contents) = tabs![
+        UpdateModeTabs,
+        TabCorners::Both,
+        ("Focused Mode", winit_update_mode::<Focused>()),
+        ("Unfocused Mode", winit_update_mode::<Unfocused>()),
+    ];
+
+    Children::spawn((
+        Spawn(describe(
             Text::new("Frame Pacing:"),
-            "Settings to control the framerate of the whole application. May be capped by the Presentation Mode if VSync is enabled."
-        ),
-        describe(
-            Text::new("Focused Mode"),
-            "Settings for how the app updates while the window is in focus."
-        ),
-        winit_update_mode::<Focused>(),
-        describe(
-            Text::new("Unfocused Mode"),
-            "Settings for how the app updates while the window is unfocused."
-        ),
-        winit_update_mode::<Unfocused>(),
-    ]
+            "Settings to control the framerate of the whole application. May be capped by the Presentation Mode if VSync is enabled.",
+        )),
+        Spawn(buttons),
+        contents,
+    ))
 }
 
 fn winit_update_mode<F>() -> impl Bundle
@@ -211,15 +222,10 @@ where
 {
     let focus = F::VALUE;
     (
-        Node {
-            flex_direction: FlexDirection::Column,
-            row_gap: GAP_SIZE,
-            ..default()
-        },
         RadioGroup,
         observe(
             move |on: On<ValueChange<Entity>>,
-                  radios: Query<(Entity, &UpdateModeVariant)>,
+                  radios: Query<(Entity, &UpdateModeVariant), With<F>>,
                   mut settings: ResMut<CachedWinitSettings>,
                   mut commands: Commands| {
                 for (entity, &variant) in radios.iter() {
@@ -233,6 +239,7 @@ where
             },
         ),
         children![
+            Text::new(F::DESCRIPTION),
             describe(
                 radio(
                     <(F, Continuous)>::radio_checked(),

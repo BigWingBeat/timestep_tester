@@ -13,8 +13,11 @@ mod update_rate;
 pub use simulation::SimulationDescription;
 
 use crate::ui::{
-    presentation_modes::presentation_modes, simulation::simulation, tabs::tabs,
-    timesteps::timesteps, update_rate::update_rate,
+    presentation_modes::presentation_modes,
+    simulation::simulation,
+    tabs::{TabCorners, tabs},
+    timesteps::timesteps,
+    update_rate::update_rate,
 };
 
 const GAP_SIZE: Val = Val::Px(12.0);
@@ -45,6 +48,15 @@ pub fn plugin(app: &mut App) {
 }
 
 fn setup(mut commands: Commands) {
+    let (buttons, contents) = tabs![
+        TopLevelTabs,
+        TabCorners::Top,
+        ("Simulation", simulation()),
+        ("Timesteps", timesteps()),
+        ("Presentation Modes", presentation_modes()),
+        ("Update Rate", update_rate()),
+    ];
+
     commands.spawn((
         Node {
             position_type: PositionType::Absolute,
@@ -55,12 +67,20 @@ fn setup(mut commands: Commands) {
             ..default()
         },
         TabGroup::default(),
-        tabs![
-            TopLevelTabs,
-            ("Simulation", simulation()),
-            ("Timesteps", timesteps()),
-            ("Presentation Modes", presentation_modes()),
-            ("Update Rate", update_rate()),
+        children![
+            buttons,
+            (
+                Node {
+                    padding: UiRect::all(GAP_SIZE),
+                    border: UiRect::all(Val::Px(2.0)).with_top(Val::ZERO),
+                    max_width: MAX_WIDTH,
+                    ..default()
+                },
+                BackgroundColor(feathers::palette::GRAY_1),
+                BorderColor::all(feathers::palette::WARM_GRAY_1),
+                BorderRadius::all(Val::Px(4.0)).with_top(Val::ZERO),
+                Children::spawn(contents),
+            )
         ],
     ));
 }
