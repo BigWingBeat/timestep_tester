@@ -9,10 +9,7 @@ use bevy::{
     winit::{UpdateMode, WinitSettings},
 };
 
-use crate::{
-    timestep::SimulationDelta,
-    ui::{GAP_SIZE, describe},
-};
+use crate::ui::{GAP_SIZE, describe};
 
 #[derive(Clone, Copy)]
 enum Focus {
@@ -189,25 +186,6 @@ pub fn plugin(app: &mut App) {
 
 pub fn update_rate() -> impl Bundle {
     children![
-        describe(
-            Text::new("Simulation Rate:"),
-            "The target frequency in Hz at which the simulation tries to run, independant of the framerate."
-        ),
-        slider(
-            SliderProps {
-                value: 64.0,
-                min: 1.0,
-                max: 1000.0
-            },
-            observe(
-                |on: On<ValueChange<f32>>,
-                 mut commands: Commands,
-                 mut simulation_delta: ResMut<SimulationDelta>| {
-                    commands.entity(on.source).insert(SliderValue(on.value));
-                    simulation_delta.0 = Duration::from_secs_f32(on.value.recip());
-                }
-            ),
-        ),
         describe(
             Text::new("Frame Pacing:"),
             "Settings to control the framerate of the whole application. May be capped by the Presentation Mode if VSync is enabled."

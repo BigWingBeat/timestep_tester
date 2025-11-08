@@ -1,13 +1,16 @@
+use std::time::Duration;
+
 use bevy::{
     ecs::system::{IntoObserverSystem, ObserverSystem},
-    feathers::controls::checkbox,
+    feathers::controls::{SliderProps, checkbox, slider},
     prelude::*,
     ui::Checked,
-    ui_widgets::{ValueChange, observe},
+    ui_widgets::{SliderValue, ValueChange, observe},
 };
 
 use crate::{
     configuration::{ActiveTimesteps, respawn},
+    timestep::SimulationDelta,
     ui::describe,
 };
 
@@ -29,6 +32,25 @@ fn toggle_timestep(timestep: ActiveTimesteps) -> impl ObserverSystem<ValueChange
 
 pub fn timesteps() -> impl Bundle {
     children![
+        describe(
+            Text::new("Simulation Rate:"),
+            "The target frequency in Hz at which the simulation tries to run, independant of the framerate."
+        ),
+        slider(
+            SliderProps {
+                value: 64.0,
+                min: 1.0,
+                max: 1000.0
+            },
+            observe(
+                |on: On<ValueChange<f32>>,
+                 mut commands: Commands,
+                 mut simulation_delta: ResMut<SimulationDelta>| {
+                    commands.entity(on.source).insert(SliderValue(on.value));
+                    simulation_delta.0 = Duration::from_secs_f32(on.value.recip());
+                }
+            ),
+        ),
         Text::new("Timestep Toggles:"),
         describe(
             checkbox(
