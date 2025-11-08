@@ -2,7 +2,6 @@ use bevy::{
     dev_tools::fps_overlay::FpsOverlayPlugin, feathers::FeathersPlugins, prelude::*,
     window::PresentMode,
 };
-use clap::{Parser, ValueEnum};
 
 use crate::timestep::SemiFixed;
 
@@ -14,19 +13,7 @@ mod timestep;
 mod ui;
 mod update_cadence;
 
-#[derive(Clone, Copy, ValueEnum)]
-enum Mode {
-    Variable,
-    Fixed,
-}
-
-#[derive(Parser)]
-struct Args {
-    mode: Mode,
-}
-
 fn main() -> AppExit {
-    let args = Args::parse();
     App::new()
         .add_plugins((
             DefaultPlugins.set(WindowPlugin {

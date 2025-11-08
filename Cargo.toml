@@ -19,5 +19,4 @@ bevy = { version = "0.17", default-features = false, features = [
 	"x11",
 ] }
 bitflags = { version = "2.9", features = ["std"] }
-clap = { version = "4.5", features = ["derive"] }
 num_enum = "0.7"
