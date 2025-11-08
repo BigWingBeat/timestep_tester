@@ -35,7 +35,8 @@ fn describe(node: impl Bundle, description: impl Into<String>) -> impl Bundle {
 }
 
 pub fn plugin(app: &mut App) {
-    app.insert_resource(UiTheme(create_dark_theme()))
+    app.add_plugins(update_rate::plugin)
+        .insert_resource(UiTheme(create_dark_theme()))
         .insert_resource(ClearColor(feathers::palette::GRAY_0))
         .add_systems(Startup, setup);
 }

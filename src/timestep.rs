@@ -3,7 +3,7 @@ use std::time::Duration;
 use bevy::{ecs::schedule::ScheduleLabel, prelude::*};
 
 #[derive(Resource)]
-pub struct SimulationDelta(Duration);
+pub struct SimulationDelta(pub Duration);
 
 #[derive(Component, ScheduleLabel, Clone, Copy, PartialEq, Eq, Hash, Default, Debug)]
 pub struct NoDelta;
@@ -21,7 +21,10 @@ pub fn plugin(app: &mut App) {
     app.insert_resource(SimulationDelta(Duration::from_secs_f32(1.0 / 64.0)))
         .init_resource::<Time<NoDelta>>()
         .init_resource::<Time<SemiFixed>>()
-        .add_systems(Update, (no_delta, variable_delta, semi_fixed))
+        .add_systems(
+            Update,
+            (update_fixed_delta, no_delta, variable_delta, semi_fixed),
+        )
         .add_systems(FixedUpdate, fixed);
 }
 
@@ -63,6 +66,17 @@ fn semi_fixed(world: &mut World) {
     });
 
     *world.resource_mut::<Time>() = world.resource::<Time<Virtual>>().as_generic();
+}
+
+fn update_fixed_delta(
+    mut fixed: ResMut<Time<bevy::prelude::Fixed>>,
+    simulation_delta: Res<SimulationDelta>,
+) {
+    if !simulation_delta.is_changed() {
+        return;
+    }
+
+    fixed.set_timestep(simulation_delta.0);
 }
 
 fn fixed(world: &mut World) {
