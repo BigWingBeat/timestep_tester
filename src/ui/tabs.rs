@@ -51,6 +51,14 @@ impl PartialEq for TabName {
 
 impl Eq for TabName {}
 
+fn tab_button(props: ButtonProps, name: &'static str) -> impl Bundle {
+    button(
+        props,
+        (RadioButton, remove::<Button>(), TabName(name)),
+        Spawn(Text::new(name)),
+    )
+}
+
 pub(super) fn tab_buttons<const MIDDLE: usize>(
     first: &'static str,
     middle: [&'static str; MIDDLE],
@@ -82,41 +90,31 @@ pub(super) fn tab_buttons<const MIDDLE: usize>(
                 }
             },
         ),
-        {
-            fn tab_button(props: ButtonProps, name: &'static str) -> impl Bundle {
-                button(
-                    props,
-                    (RadioButton, remove::<Button>(), TabName(name)),
-                    Spawn(Text::new(name)),
-                )
-            }
-
-            Children::spawn((
-                Spawn(tab_button(
+        Children::spawn((
+            Spawn(tab_button(
+                ButtonProps {
+                    variant: ButtonVariant::Primary,
+                    corners: RoundedCorners::TopLeft,
+                },
+                first,
+            )),
+            SpawnIter(middle.into_iter().map(|middle| {
+                tab_button(
                     ButtonProps {
-                        variant: ButtonVariant::Primary,
-                        corners: RoundedCorners::TopLeft,
-                    },
-                    first,
-                )),
-                SpawnIter(middle.into_iter().map(|middle| {
-                    tab_button(
-                        ButtonProps {
-                            corners: RoundedCorners::None,
-                            ..default()
-                        },
-                        middle,
-                    )
-                })),
-                Spawn(tab_button(
-                    ButtonProps {
-                        corners: RoundedCorners::TopRight,
+                        corners: RoundedCorners::None,
                         ..default()
                     },
-                    last,
-                )),
-            ))
-        },
+                    middle,
+                )
+            })),
+            Spawn(tab_button(
+                ButtonProps {
+                    corners: RoundedCorners::TopRight,
+                    ..default()
+                },
+                last,
+            )),
+        )),
     )
 }
 
