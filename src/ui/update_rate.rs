@@ -228,7 +228,7 @@ pub fn update_rate() -> impl Bundle {
 
     Children::spawn((
         Spawn(describe(
-            Text::new("Frame Pacing:"),
+            Text::new("Update Rate:"),
             "Settings to control the framerate of the whole application. May be capped by the Presentation Mode if VSync is enabled.",
         )),
         Spawn(buttons),
