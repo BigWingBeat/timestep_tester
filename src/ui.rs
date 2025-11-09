@@ -4,19 +4,19 @@ use bevy::{
     prelude::*,
 };
 
+mod lag;
 mod presentation_modes;
 mod simulation;
 mod tabs;
-mod timesteps;
 mod update_rate;
 
 pub use simulation::SimulationDescription;
 
 use crate::ui::{
+    lag::lag,
     presentation_modes::presentation_modes,
     simulation::simulation,
     tabs::{TabCorners, tabs},
-    timesteps::timesteps,
     update_rate::update_rate,
 };
 
@@ -41,7 +41,7 @@ fn describe(node: impl Bundle, description: impl Into<String>) -> impl Bundle {
 struct TopLevelTabs;
 
 pub fn plugin(app: &mut App) {
-    app.add_plugins(update_rate::plugin)
+    app.add_plugins((update_rate::plugin, lag::plugin))
         .insert_resource(UiTheme(create_dark_theme()))
         .insert_resource(ClearColor(feathers::palette::GRAY_0))
         .add_systems(Startup, setup);
@@ -52,7 +52,7 @@ fn setup(mut commands: Commands) {
         TopLevelTabs,
         TabCorners::Top,
         ("Simulation", simulation()),
-        ("Timesteps", timesteps()),
+        ("Artificial Lag", lag()),
         ("Presentation Modes", presentation_modes()),
         ("Update Rate", update_rate()),
     ];
