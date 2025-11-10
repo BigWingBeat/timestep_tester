@@ -3,79 +3,148 @@ use bevy::{
     prelude::*,
     ui::Checked,
     ui_widgets::{RadioGroup, ValueChange, observe},
-    window::PresentMode,
+    window::{PresentMode, WindowMode},
 };
 
-use crate::{configuration::respawn, ui::describe};
+use crate::{
+    configuration::respawn,
+    ui::{GAP_SIZE, describe},
+};
 
 #[derive(Component)]
 struct WindowPresentMode(PresentMode);
 
+#[derive(Component, Clone, Copy)]
+enum FullscreenMode {
+    Windowed,
+    BorderlessFullscreen,
+    Fullscreen,
+}
+
+impl From<FullscreenMode> for WindowMode {
+    fn from(mode: FullscreenMode) -> Self {
+        match mode {
+            FullscreenMode::Windowed => Self::Windowed,
+            FullscreenMode::BorderlessFullscreen => {
+                Self::BorderlessFullscreen(MonitorSelection::Current)
+            }
+            FullscreenMode::Fullscreen => {
+                Self::Fullscreen(MonitorSelection::Current, VideoModeSelection::Current)
+            }
+        }
+    }
+}
+
 pub fn presentation_modes() -> impl Bundle {
-    (
-        RadioGroup,
-        observe(
-            |on: On<ValueChange<Entity>>,
-             radios: Query<(Entity, &WindowPresentMode)>,
-             mut windows: Query<&mut Window>,
-             mut commands: Commands| {
-                for (entity, mode) in radios.iter() {
-                    if entity == on.value {
-                        commands.entity(entity).insert(Checked);
-                        for mut window in windows.iter_mut() {
-                            window.present_mode = mode.0;
-                        }
-                        commands.run_system_cached(respawn);
-                    } else {
-                        commands.entity(entity).remove::<Checked>();
-                    }
-                }
+    children![
+        (
+            Node {
+                flex_direction: FlexDirection::Column,
+                row_gap: GAP_SIZE,
+                ..default()
             },
+            RadioGroup,
+            observe(
+                |on: On<ValueChange<Entity>>,
+                 radios: Query<(Entity, &WindowPresentMode)>,
+                 mut windows: Query<&mut Window>,
+                 mut commands: Commands| {
+                    for (entity, mode) in radios.iter() {
+                        if entity == on.value {
+                            commands.entity(entity).insert(Checked);
+                            for mut window in windows.iter_mut() {
+                                window.present_mode = mode.0;
+                            }
+                            commands.run_system_cached(respawn);
+                        } else {
+                            commands.entity(entity).remove::<Checked>();
+                        }
+                    }
+                },
+            ),
+            children![
+                Text::new("Switch Window Presentation Mode:"),
+                describe(
+                    radio(
+                        WindowPresentMode(PresentMode::AutoVsync),
+                        Spawn(Text::new("AutoVsync"))
+                    ),
+                    "Chooses FifoRelaxed -> Fifo based on availability."
+                ),
+                describe(
+                    radio(
+                        WindowPresentMode(PresentMode::AutoNoVsync),
+                        Spawn(Text::new("AutoNoVsync"))
+                    ),
+                    "Chooses Immediate -> Mailbox -> Fifo based on availability."
+                ),
+                describe(
+                    radio(
+                        WindowPresentMode(PresentMode::Fifo),
+                        Spawn(Text::new("Fifo"))
+                    ),
+                    "Vsync with a ~3 frame queue. Adds latency, no screen tearing."
+                ),
+                describe(
+                    radio(
+                        WindowPresentMode(PresentMode::FifoRelaxed),
+                        Spawn(Text::new("FifoRelaxed"))
+                    ),
+                    "\"Adaptive\" Vsync with a ~3 frame queue. Adds latency, causes screen tearing."
+                ),
+                describe(
+                    radio(
+                        WindowPresentMode(PresentMode::Immediate),
+                        Spawn(Text::new("Immediate"))
+                    ),
+                    "No vsync, no frame queue. Low latency, causes screen tearing."
+                ),
+                describe(
+                    radio(
+                        (Checked, WindowPresentMode(PresentMode::Mailbox)),
+                        Spawn(Text::new("Mailbox"))
+                    ),
+                    "\"Fast\" vsync, no frame queue. Low latency, no screen tearing."
+                ),
+            ],
         ),
-        children![
-            Text::new("Switch Window Presentation Mode:"),
-            describe(
-                radio(
-                    WindowPresentMode(PresentMode::AutoVsync),
-                    Spawn(Text::new("AutoVsync"))
-                ),
-                "Chooses FifoRelaxed -> Fifo based on availability."
+        (
+            Node {
+                flex_direction: FlexDirection::Column,
+                row_gap: GAP_SIZE,
+                ..default()
+            },
+            RadioGroup,
+            observe(
+                |on: On<ValueChange<Entity>>,
+                 radios: Query<(Entity, &FullscreenMode)>,
+                 mut windows: Query<&mut Window>,
+                 mut commands: Commands| {
+                    for (entity, &mode) in radios.iter() {
+                        if entity == on.value {
+                            commands.entity(entity).insert(Checked);
+                            for mut window in windows.iter_mut() {
+                                window.mode = mode.into();
+                            }
+                            commands.run_system_cached(respawn);
+                        } else {
+                            commands.entity(entity).remove::<Checked>();
+                        }
+                    }
+                },
             ),
-            describe(
+            children![
+                Text::new("Switch Fullscreen mode:"),
                 radio(
-                    WindowPresentMode(PresentMode::AutoNoVsync),
-                    Spawn(Text::new("AutoNoVsync"))
+                    (Checked, FullscreenMode::Windowed),
+                    Spawn(Text::new("Windowed"))
                 ),
-                "Chooses Immediate -> Mailbox -> Fifo based on availability."
-            ),
-            describe(
                 radio(
-                    WindowPresentMode(PresentMode::Fifo),
-                    Spawn(Text::new("Fifo"))
+                    FullscreenMode::BorderlessFullscreen,
+                    Spawn(Text::new("Borderless Fullscreen"))
                 ),
-                "Vsync with a ~3 frame queue. Adds latency, no screen tearing."
-            ),
-            describe(
-                radio(
-                    WindowPresentMode(PresentMode::FifoRelaxed),
-                    Spawn(Text::new("FifoRelaxed"))
-                ),
-                "\"Adaptive\" Vsync with a ~3 frame queue. Adds latency, causes screen tearing."
-            ),
-            describe(
-                radio(
-                    WindowPresentMode(PresentMode::Immediate),
-                    Spawn(Text::new("Immediate"))
-                ),
-                "No vsync, no frame queue. Low latency, causes screen tearing."
-            ),
-            describe(
-                radio(
-                    (Checked, WindowPresentMode(PresentMode::Mailbox)),
-                    Spawn(Text::new("Mailbox"))
-                ),
-                "\"Fast\" vsync, no frame queue. Low latency, no screen tearing."
-            ),
-        ],
-    )
+                radio(FullscreenMode::Fullscreen, Spawn(Text::new("Fullscreen"))),
+            ],
+        )
+    ]
 }
