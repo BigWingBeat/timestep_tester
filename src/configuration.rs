@@ -39,11 +39,19 @@ impl Timestep {
 }
 
 pub trait CommandsExt {
-    fn spawn_with_timestep(&mut self, timestep: &Timestep, bundle: impl Bundle) -> EntityCommands;
+    fn spawn_with_timestep(
+        &mut self,
+        timestep: &Timestep,
+        bundle: impl Bundle,
+    ) -> EntityCommands<'_>;
 }
 
 impl CommandsExt for Commands<'_, '_> {
-    fn spawn_with_timestep(&mut self, timestep: &Timestep, bundle: impl Bundle) -> EntityCommands {
+    fn spawn_with_timestep(
+        &mut self,
+        timestep: &Timestep,
+        bundle: impl Bundle,
+    ) -> EntityCommands<'_> {
         match timestep {
             Timestep::NoDelta => self.spawn((NoDelta, bundle)),
             Timestep::VariableDelta => self.spawn((VariableDelta, bundle)),
@@ -110,9 +118,6 @@ impl From<Timestep> for ActiveTimesteps {
 
 pub trait TimestepComponent: Component {
     const TIMESTEP: Timestep;
-    fn index() -> usize {
-        Self::TIMESTEP.index()
-    }
 }
 
 impl TimestepComponent for NoDelta {
