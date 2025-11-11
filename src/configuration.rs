@@ -1,4 +1,5 @@
 use bevy::{
+    color::{ColorCurve, palettes::tailwind},
     ecs::{
         schedule::ScheduleConfigs,
         system::{ScheduleSystem, SystemId},
@@ -35,6 +36,43 @@ pub enum Timestep {
 impl Timestep {
     pub fn index(self) -> usize {
         (self as u8).ilog2() as usize
+    }
+
+    pub fn palette(self) -> ColorCurve<Oklaba> {
+        match self {
+            Self::NoDelta => ColorCurve::new([
+                tailwind::PURPLE_500.into(),
+                tailwind::PURPLE_700.into(),
+                tailwind::FUCHSIA_500.into(),
+                tailwind::FUCHSIA_700.into(),
+                tailwind::PURPLE_500.into(),
+            ])
+            .unwrap(),
+            Self::VariableDelta => ColorCurve::new([
+                tailwind::GREEN_500.into(),
+                tailwind::GREEN_700.into(),
+                tailwind::EMERALD_500.into(),
+                tailwind::EMERALD_700.into(),
+                tailwind::GREEN_500.into(),
+            ])
+            .unwrap(),
+            Self::SemiFixed => ColorCurve::new([
+                tailwind::SKY_500.into(),
+                tailwind::SKY_700.into(),
+                tailwind::BLUE_500.into(),
+                tailwind::BLUE_700.into(),
+                tailwind::SKY_500.into(),
+            ])
+            .unwrap(),
+            Self::Fixed => ColorCurve::new([
+                tailwind::ROSE_500.into(),
+                tailwind::ROSE_700.into(),
+                tailwind::RED_500.into(),
+                tailwind::RED_700.into(),
+                tailwind::ROSE_500.into(),
+            ])
+            .unwrap(),
+        }
     }
 }
 

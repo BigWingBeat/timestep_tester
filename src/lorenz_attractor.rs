@@ -1,6 +1,6 @@
 use bevy::{
     camera::visibility::RenderLayers,
-    color::{ColorCurve, palettes::tailwind},
+    color::ColorCurve,
     core_pipeline::tonemapping::Tonemapping,
     ecs::{
         schedule::ScheduleConfigs,
@@ -48,16 +48,16 @@ struct Points(Vec<Vec3>);
 
 #[derive(Component)]
 struct Colours {
-    curve: ColorCurve<Oklcha>,
+    curve: ColorCurve<Oklaba>,
     interp_seconds: f32,
     factor: f32,
-    seq: Vec<Oklcha>,
+    seq: Vec<Oklaba>,
 }
 
 impl Colours {
-    fn new(colours: impl IntoIterator<Item = Oklcha>, interp_seconds: f32) -> Self {
+    fn new(curve: ColorCurve<Oklaba>, interp_seconds: f32) -> Self {
         Self {
-            curve: ColorCurve::new(colours).unwrap(),
+            curve,
             interp_seconds,
             factor: 0.0,
             seq: Vec::new(),
@@ -66,37 +66,13 @@ impl Colours {
 
     fn from_timestep(timestep: &Timestep) -> Self {
         const INTERP_SECONDS: f32 = 10.0;
-        let colours = match timestep {
-            Timestep::NoDelta => [
-                tailwind::ROSE_500.into(),
-                tailwind::ROSE_800.into(),
-                tailwind::RED_800.into(),
-            ],
-            Timestep::VariableDelta => [
-                tailwind::GREEN_500.into(),
-                tailwind::GREEN_800.into(),
-                tailwind::EMERALD_800.into(),
-            ],
-            Timestep::SemiFixed => [
-                tailwind::SKY_500.into(),
-                tailwind::SKY_800.into(),
-                tailwind::BLUE_800.into(),
-            ],
-            Timestep::Fixed => [
-                tailwind::FUCHSIA_500.into(),
-                tailwind::FUCHSIA_800.into(),
-                tailwind::PURPLE_800.into(),
-            ],
-        };
-        Self::new(colours, INTERP_SECONDS)
+        Self::new(timestep.palette(), INTERP_SECONDS)
     }
 
     fn push_next(&mut self, dt: f32) {
-        self.factor += (self.curve.domain().end() / self.interp_seconds) * dt;
-        let new_factor = self.curve.domain().clamp(self.factor);
-        if new_factor != self.factor {
-            self.factor = new_factor;
-            self.interp_seconds = -self.interp_seconds;
+        self.factor += (self.curve.domain().length() / self.interp_seconds) * dt;
+        if !self.curve.domain().contains(self.factor) {
+            self.factor = self.curve.domain().start();
         }
         let colour = self.curve.sample_unchecked(self.factor);
         self.seq.push(colour);

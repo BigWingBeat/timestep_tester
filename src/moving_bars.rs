@@ -1,18 +1,13 @@
 use bevy::{
-    asset::RenderAssetUsages,
     camera::visibility::RenderLayers,
-    color::{ColorCurve, palettes::tailwind},
     core_pipeline::tonemapping::Tonemapping,
     ecs::{
         schedule::ScheduleConfigs,
         system::{ScheduleSystem, SystemId},
     },
-    image::TextureFormatPixelInfo,
     prelude::*,
-    render::render_resource::{Extent3d, TextureDimension, TextureFormat},
     window::PrimaryWindow,
 };
-use bitflags::Flags;
 
 use crate::{
     configuration::{
@@ -37,55 +32,6 @@ impl SimulationMeta for MovingBarsMeta {
 #[derive(Component)]
 struct Bar;
 
-#[derive(Resource)]
-struct Textures([Handle<Image>; ActiveTimesteps::FLAGS.len()]);
-
-fn texture(timestep: Timestep) -> Image {
-    // match timestep {
-    //     Timestep::NoDelta => todo!(),
-    //     Timestep::VariableDelta => todo!(),
-    //     Timestep::SemiFixed => todo!(),
-    //     Timestep::Fixed => todo!(),
-    // }
-
-    let format = TextureFormat::bevy_default();
-    // If the default format changes the following code would need to change as well
-    assert_eq!(format, TextureFormat::Rgba8UnormSrgb);
-    assert!(matches!(format.pixel_size(), Ok(4)));
-
-    let colours = ColorCurve::<Oklcha>::new([
-        tailwind::SKY_500.into(),
-        tailwind::SKY_800.into(),
-        tailwind::BLUE_800.into(),
-    ])
-    .unwrap();
-
-    const RESOLUTION: u8 = 64;
-
-    let data = colours
-        .domain()
-        .spaced_points(RESOLUTION.into())
-        .unwrap()
-        .flat_map(|t| {
-            // Adapted from `Image::set_color_at_internal`
-            Srgba::from(colours.sample_unchecked(t))
-                .to_f32_array()
-                .map(|b| (b * u8::MAX as f32) as u8)
-        })
-        .collect();
-
-    Image::new(
-        Extent3d {
-            width: RESOLUTION.into(),
-            ..default()
-        },
-        TextureDimension::D2,
-        data,
-        format,
-        RenderAssetUsages::default(),
-    )
-}
-
 const MAX_X: f32 = 800.0;
 const MOVE_SPEED: f32 = 200.0;
 
@@ -104,11 +50,7 @@ pub fn plugin(app: &mut App) {
         .add_systems_with_timestep::<Systems>();
 }
 
-fn setup(
-    mut commands: Commands,
-    mut despawns: ResMut<DespawnSystems>,
-    mut images: ResMut<Assets<Image>>,
-) {
+fn setup(mut commands: Commands, mut despawns: ResMut<DespawnSystems>) {
     let despawn = commands.register_system(despawn);
     despawns.0.push(despawn);
     let spawn = commands.register_system(spawn);
@@ -125,14 +67,6 @@ fn setup(
         ))
         .id();
     commands.insert_resource(MovingBarsMeta { camera, spawn });
-
-    let textures = [
-        images.add(texture(Timestep::NoDelta)),
-        images.add(texture(Timestep::VariableDelta)),
-        images.add(texture(Timestep::SemiFixed)),
-        images.add(texture(Timestep::Fixed)),
-    ];
-    commands.insert_resource(Textures(textures));
 }
 
 fn despawn(mut commands: Commands, bars: Query<Entity, With<Bar>>) {
@@ -145,11 +79,12 @@ fn spawn(
     timestep: In<Timestep>,
     mut commands: Commands,
     mut description: Single<&mut Text, With<SimulationDescription>>,
-    textures: Res<Textures>,
 ) {
     **description = "Moving Bars".into();
 
     const WIDTH: f32 = 80.0;
+
+    let colour = timestep.palette().sample_unchecked(0.0);
 
     let count = (MAX_X / (WIDTH * 2.0)) as u8;
     for i in 0..count {
@@ -160,11 +95,7 @@ fn spawn(
             (
                 Transform::from_xyz(x, 0.0, 1.0),
                 RenderLayers::layer(RENDER_LAYER),
-                Sprite {
-                    image: textures.0[timestep.0.index()].clone(),
-                    custom_size: Some(Vec2::splat(WIDTH)),
-                    ..default()
-                },
+                Sprite::from_color(colour, Vec2::splat(WIDTH)),
                 Bar,
             ),
         );

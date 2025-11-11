@@ -1,6 +1,5 @@
 use bevy::{
     camera::visibility::RenderLayers,
-    color::palettes::basic::*,
     core_pipeline::tonemapping::Tonemapping,
     ecs::{
         schedule::ScheduleConfigs,
@@ -38,12 +37,7 @@ struct CursorMesh(Handle<Mesh>);
 struct CursorMaterial([Handle<StandardMaterial>; ActiveTimesteps::FLAGS.len()]);
 
 fn material(timestep: Timestep) -> StandardMaterial {
-    let colour = match timestep {
-        Timestep::NoDelta => GRAY,
-        Timestep::VariableDelta => BLUE,
-        Timestep::SemiFixed => LIME,
-        Timestep::Fixed => RED,
-    };
+    let colour = timestep.palette().sample_unchecked(0.0);
 
     StandardMaterial {
         base_color: colour.into(),
