@@ -9,12 +9,9 @@ use bevy::{
     window::PrimaryWindow,
 };
 
-use crate::{
-    configuration::{
-        ActiveTimesteps, AppExt, CommandsExt, DespawnSystems, SimulationMeta, Timestep,
-        TimestepComponent, TimesteppedSystems,
-    },
-    ui::SimulationDescription,
+use crate::configuration::{
+    ActiveTimesteps, AppExt, CommandsExt, DespawnSystems, SimulationMeta, Timestep,
+    TimestepComponent, TimesteppedSystems,
 };
 
 #[derive(Resource)]
@@ -75,13 +72,7 @@ fn despawn(mut commands: Commands, bars: Query<Entity, With<Bar>>) {
     }
 }
 
-fn spawn(
-    timestep: In<Timestep>,
-    mut commands: Commands,
-    mut description: Single<&mut Text, With<SimulationDescription>>,
-) {
-    **description = "Moving Bars".into();
-
+fn spawn(timestep: In<Timestep>, mut commands: Commands) {
     const WIDTH: f32 = 80.0;
 
     let colour = timestep.palette().sample_unchecked(0.0);

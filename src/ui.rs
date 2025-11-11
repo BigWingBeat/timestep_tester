@@ -10,8 +10,6 @@ mod simulation;
 mod tabs;
 mod update_rate;
 
-pub use simulation::SimulationDescription;
-
 use crate::ui::{
     lag::lag,
     presentation_modes::presentation_modes,

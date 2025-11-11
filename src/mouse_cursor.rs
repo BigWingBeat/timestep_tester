@@ -10,12 +10,9 @@ use bevy::{
 };
 use bitflags::Flags;
 
-use crate::{
-    configuration::{
-        ActiveTimesteps, AppExt, CommandsExt, DespawnSystems, SimulationMeta, Timestep,
-        TimesteppedSystems,
-    },
-    ui::SimulationDescription,
+use crate::configuration::{
+    ActiveTimesteps, AppExt, CommandsExt, DespawnSystems, SimulationMeta, Timestep,
+    TimesteppedSystems,
 };
 
 #[derive(Resource)]
@@ -113,17 +110,9 @@ fn despawn(mut commands: Commands, cursors: Query<Entity, With<Cursor>>) {
 fn spawn(
     timestep: In<Timestep>,
     mut commands: Commands,
-    mut description: Single<&mut Text, With<SimulationDescription>>,
     mesh: Res<CursorMesh>,
     material: Res<CursorMaterial>,
 ) {
-    **description = "Cursor Colours:
-GRAY: No Delta Time
-BLUE: Variable Delta Time
-LIME: Semi-Fixed Timestep
-RED: Fixed Timestep"
-        .into();
-
     commands.spawn_with_timestep(
         &timestep.0,
         (

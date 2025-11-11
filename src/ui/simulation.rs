@@ -31,9 +31,6 @@ fn toggle_timestep(timestep: ActiveTimesteps) -> impl ObserverSystem<ValueChange
 }
 
 #[derive(Component)]
-pub struct SimulationDescription;
-
-#[derive(Component)]
 struct SimulationRadioButton(ActiveSimulation);
 
 pub fn simulation() -> impl Bundle {
@@ -100,7 +97,6 @@ pub fn simulation() -> impl Bundle {
                 ),
                 "High-contrast vertical bars, useful for visualising screen tearing and stuttering."
             ),
-            (Text::default(), SimulationDescription),
             Text::new("Timestep Toggles:"),
             describe(
                 checkbox(
