@@ -95,10 +95,10 @@ pub fn simulation() -> impl Bundle {
             ),
             describe(
                 radio(
-                    SimulationRadioButton(ActiveSimulation::MovingBox),
-                    Spawn(Text::new("Moving Box"))
+                    SimulationRadioButton(ActiveSimulation::MovingBars),
+                    Spawn(Text::new("Moving Bars"))
                 ),
-                "Fast-moving, high-contrast images, useful for visualising screen tearing and stuttering."
+                "High-contrast vertical bars, useful for visualising screen tearing and stuttering."
             ),
             (Text::default(), SimulationDescription),
             Text::new("Timestep Toggles:"),

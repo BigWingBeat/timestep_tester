@@ -8,7 +8,7 @@ use crate::timestep::SemiFixed;
 mod configuration;
 mod lorenz_attractor;
 mod mouse_cursor;
-mod moving_box;
+mod moving_bars;
 mod timestep;
 mod ui;
 mod update_cadence;
@@ -30,7 +30,7 @@ fn main() -> AppExit {
             configuration::plugin,
             lorenz_attractor::plugin,
             mouse_cursor::plugin,
-            moving_box::plugin,
+            moving_bars::plugin,
             timestep::plugin,
             ui::plugin,
             update_cadence::UpdateCadencePlugin::default().add_schedule(SemiFixed),

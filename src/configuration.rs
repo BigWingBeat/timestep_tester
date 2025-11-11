@@ -11,7 +11,7 @@ use num_enum::TryFromPrimitive;
 use crate::{
     lorenz_attractor::LorenzAttractorMeta,
     mouse_cursor::MouseCursorMeta,
-    moving_box::MovingBoxMeta,
+    moving_bars::MovingBarsMeta,
     timestep::{Fixed, NoDelta, SemiFixed, VariableDelta},
 };
 
@@ -20,7 +20,7 @@ pub enum ActiveSimulation {
     #[default]
     LorenzAttractor = 1,
     MouseCursor,
-    MovingBox,
+    MovingBars,
 }
 
 #[derive(TryFromPrimitive, Clone, Copy)]
@@ -54,7 +54,7 @@ impl CommandsExt for Commands<'_, '_> {
 }
 
 pub trait TimesteppedSystems {
-    fn get_systems_for_timestep<T: Component>() -> ScheduleConfigs<ScheduleSystem>;
+    fn get_systems_for_timestep<T: TimestepComponent>() -> ScheduleConfigs<ScheduleSystem>;
 }
 
 pub trait AppExt {
@@ -92,9 +92,43 @@ impl Default for ActiveTimesteps {
 
 impl ActiveTimesteps {
     fn iter_timesteps(&self) -> impl Iterator<Item = Timestep> {
-        self.iter()
-            .map(|timestep| timestep.bits().try_into().unwrap())
+        self.iter_names()
+            .map(|(_, timestep)| timestep.bits().try_into().unwrap())
     }
+}
+
+impl From<Timestep> for ActiveTimesteps {
+    fn from(timestep: Timestep) -> Self {
+        match timestep {
+            Timestep::NoDelta => Self::NO_DELTA,
+            Timestep::VariableDelta => Self::VARIABLE_DELTA,
+            Timestep::SemiFixed => Self::SEMI_FIXED,
+            Timestep::Fixed => Self::FIXED,
+        }
+    }
+}
+
+pub trait TimestepComponent: Component {
+    const TIMESTEP: Timestep;
+    fn index() -> usize {
+        Self::TIMESTEP.index()
+    }
+}
+
+impl TimestepComponent for NoDelta {
+    const TIMESTEP: Timestep = Timestep::NoDelta;
+}
+
+impl TimestepComponent for VariableDelta {
+    const TIMESTEP: Timestep = Timestep::VariableDelta;
+}
+
+impl TimestepComponent for SemiFixed {
+    const TIMESTEP: Timestep = Timestep::SemiFixed;
+}
+
+impl TimestepComponent for Fixed {
+    const TIMESTEP: Timestep = Timestep::Fixed;
 }
 
 #[derive(Resource, Default)]
@@ -123,7 +157,7 @@ pub fn respawn(
     despawn_systems: Res<DespawnSystems>,
     lorenz_attractor: Res<LorenzAttractorMeta>,
     mouse_cursor: Res<MouseCursorMeta>,
-    moving_box: Res<MovingBoxMeta>,
+    moving_bars: Res<MovingBarsMeta>,
 ) {
     for &system in &despawn_systems.0 {
         commands.run_system(system);
@@ -132,7 +166,7 @@ pub fn respawn(
     let (active_camera, spawn) = match *active_simulation {
         ActiveSimulation::LorenzAttractor => lorenz_attractor.get(),
         ActiveSimulation::MouseCursor => mouse_cursor.get(),
-        ActiveSimulation::MovingBox => moving_box.get(),
+        ActiveSimulation::MovingBars => moving_bars.get(),
     };
 
     for (entity, mut camera) in cameras.iter_mut() {
