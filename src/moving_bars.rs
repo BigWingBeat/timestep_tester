@@ -106,7 +106,7 @@ fn run<T: TimestepComponent>(
 
     let offset = (window_height / 2.0) - (height / 2.0);
     let above_count = (active_timesteps.bits() & ((T::TIMESTEP as u8) - 1)).count_ones();
-    let y = ((above_count as f32) * height) - offset;
+    let y = offset - ((above_count as f32) * height);
 
     for (mut transform, mut sprite) in bars.iter_mut() {
         let new_x = transform.translation.x + (MOVE_SPEED * time.delta_secs());
