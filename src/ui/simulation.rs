@@ -55,7 +55,7 @@ pub fn simulation() -> impl Bundle {
         children![
             describe(
                 Text::new("Simulation Rate:"),
-                "The target frequency in Hz at which the simulation tries to run, independant of the framerate."
+                "The reciprocal of the fixed delta time value used by the different simulation modes, measured in Hz (updates per second)."
             ),
             slider(
                 SliderProps {
@@ -103,14 +103,14 @@ pub fn simulation() -> impl Bundle {
                     observe(toggle_timestep(ActiveTimesteps::NO_DELTA)),
                     Spawn(Text::new("No Delta Time"))
                 ),
-                "Updates every frame, without utilising delta time. Simulation speed is directly tied to framerate."
+                "Updates once every render frame, with a fixed delta time value. Simulation speed is proportional to framerate."
             ),
             describe(
                 checkbox(
                     observe(toggle_timestep(ActiveTimesteps::VARIABLE_DELTA)),
                     Spawn(Text::new("Variable Delta Time"))
                 ),
-                "Updates every frame, utilising delta time. Non-deterministic, destabilizes simulation at extremely low framerates."
+                "Updates once every render frame, with a dynamic delta time value. Unaffected by the configured Simulation Rate."
             ),
             describe(
                 checkbox(
@@ -120,14 +120,14 @@ pub fn simulation() -> impl Bundle {
                     ),
                     Spawn(Text::new("Semi-Fixed Timestep"))
                 ),
-                "Updates one or more times per frame, utilising a capped delta time. Non-deterministic, breaks down with extremely slow simulation updates."
+                "Updates one or more times per frame, with a dynamic delta time value, that is capped by the configured Simulation Rate."
             ),
             describe(
                 checkbox(
                     observe(toggle_timestep(ActiveTimesteps::FIXED)),
                     Spawn(Text::new("Fixed Timestep"))
                 ),
-                "Updates zero or more times per frame, utilising a fixed delta time. Can be deterministic, causes visual issues, breaks down with extremely slow simulation updates."
+                "Updates zero or more times per frame, with a fixed delta time value. Causes visual stuttering."
             )
         ],
     )

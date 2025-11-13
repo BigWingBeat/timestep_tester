@@ -17,23 +17,38 @@ From most-to-least framerate dependent:
 
 - No delta time:
 	- Step simulation once every render frame with a constant delta-time value
+	- Simulation rate is proportional to framerate
 - Variable delta time:
 	- Step simulation once every render frame using `Time::elapsed` as the delta-time value
+	- Non-deterministic
+	- Lag spikes or low framerates result in large delta time values, which can destabilize the simulation
 - Semi-fixed timestep:
 	- Step simulation 1 or more times every render frame using `min(Time::elapsed, constant)` as the delta-time value
+	- Non-deterministic
+	- Handles lag spikes and low framerates well
+	- Can "death spiral" if the simulation itself is too laggy
 - Fixed timestep:
 	- Step simulation 0 or more times every render frame with a constant delta-time value
+	- Handles lag spikes and low framerates well
+	- Can "death spiral" if the simulation itself is too laggy
+	- Causes noticable visual stuttering
 
 ## Types of Visual Smoothing
 
+Fixed timestep causes visual issues, which can be mitigated in a couple of ways:
+
 - None
 - Interpolate with previous value
-- Extrapolate to future value
+- Interpolate to future value (with previous value but by 1..2 instead of 0..1)
+- Extrapolate to future value (how?)
 
 ## Safety measures for lag
 
-- None
-- Cap sim rate (slow down)
+Semi-fixed and fixed timesteps can "death spiral" if the duration of an update is longer than the configured delta time. This can be mitigated in a couple of ways:
+
+- No mitigation, just let it crash and burn
+- Cap the maximum number of updates per frame. Will manifest as the simulation running slower than real-time
+- Dynamically increase the configured delta time until the simulation is able to catch back up. Larger delta times may destabilize the simulation (Effectively negating the primary benefit of (semi-)fixed timesteps)
 
 ## Frequency configurations
 
