@@ -10,9 +10,9 @@ use bitflags::bitflags;
 use num_enum::TryFromPrimitive;
 
 use crate::{
-    lorenz_attractor::LorenzAttractorMeta,
-    mouse_cursor::MouseCursorMeta,
-    moving_bars::MovingBarsMeta,
+    simulation::LorenzAttractorMeta,
+    simulation::MouseCursorMeta,
+    simulation::MovingBarsMeta,
     timestep::{Fixed, NoDelta, SemiFixed, VariableDelta},
 };
 
