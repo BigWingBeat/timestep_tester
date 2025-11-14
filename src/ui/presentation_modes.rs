@@ -6,10 +6,7 @@ use bevy::{
     window::{PresentMode, WindowMode},
 };
 
-use crate::{
-    configuration::respawn,
-    ui::{GAP_SIZE, describe},
-};
+use crate::ui::{GAP_SIZE, describe};
 
 #[derive(Component)]
 struct WindowPresentMode(PresentMode);
@@ -55,7 +52,6 @@ pub fn presentation_modes() -> impl Bundle {
                             for mut window in windows.iter_mut() {
                                 window.present_mode = mode.0;
                             }
-                            commands.run_system_cached(respawn);
                         } else {
                             commands.entity(entity).remove::<Checked>();
                         }
@@ -129,7 +125,6 @@ pub fn presentation_modes() -> impl Bundle {
                             for mut window in windows.iter_mut() {
                                 window.mode = mode.into();
                             }
-                            commands.run_system_cached(respawn);
                         } else {
                             commands.entity(entity).remove::<Checked>();
                         }
