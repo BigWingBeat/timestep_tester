@@ -2,14 +2,7 @@
 
 Visually demonstrate the difference between timestep strategies.
 
-A Lorenz Attractor is used as a sensitive chaotic system to test determinism and simulation accuracy.
-
-Visual fidelity is tested with high-frequency player-controlled motion.
-
-## Sources
-
-- https://gafferongames.com/post/fix_your_timestep/
-- https://cbournhonesque.github.io/lightyear/book/concepts/advanced_replication/visual_interpolation.html
+Features several different example simulations, as well as a bunch of configuration options for experimentation.
 
 ## Types of Timestep
 
@@ -38,11 +31,14 @@ From most-to-least framerate dependent:
 Fixed timestep causes visual issues, which can be mitigated in a couple of ways:
 
 - None
-- Interpolate with previous value
-- Interpolate to future value (with previous value but by 1..2 instead of 0..1)
-- Extrapolate to future value (how?)
+- Interpolate with previous value (i.e. `lerp` between positions by `Time::overstep_fraction`)
+- Extrapolate to future value (Same as interpolation, but with the `t` parameter in the range `1..2` instead of `0..1`)
 
-## Safety measures for lag
+For more information, see:
+- https://gafferongames.com/post/fix_your_timestep/
+- https://cbournhonesque.github.io/lightyear/book/concepts/advanced_replication/visual_interpolation.html
+
+## Safety measures for lag (Unimplemented)
 
 Semi-fixed and fixed timesteps can "death spiral" if the duration of an update is longer than the configured delta time. This can be mitigated in a couple of ways:
 
@@ -50,16 +46,9 @@ Semi-fixed and fixed timesteps can "death spiral" if the duration of an update i
 - Cap the maximum number of updates per frame. Will manifest as the simulation running slower than real-time
 - Dynamically increase the configured delta time until the simulation is able to catch back up. Larger delta times may destabilize the simulation (Effectively negating the primary benefit of (semi-)fixed timesteps)
 
-## Frequency configurations
-
-Render framerate in FPS, simulation update rate in Hz
-
-- Sim much faster (60 FPS / 128 Hz)
-- Sim slightly faster (60 FPS / 64 Hz)
-- Sim slightly slower (60 FPS / 56 Hz)
-- Sim much slower (60 FPS / 24 Hz)
-
 ## Render presentation modes
+
+The update rate of the application is not inherently tied to the refresh rate of the monitor. A new frame being rendered mid-refresh causes "screen tearing", which generally looks terrible. Different presentation modes exist to remedy this.
 
 | Presentation Mode | Input Latency | Screen Tearing | Framerate capped by Refresh Rate |
 |-|-|-|-|
@@ -68,20 +57,4 @@ Render framerate in FPS, simulation update rate in Hz
 | Immediate | No | Yes | No |
 | Mailbox ("fast vsync") | No | No | No |
 
-## Behaviour with a laggy simulation
-
-| Type of Timestep | Behaviour | Header |
-|--------|--------|--------|
-| No delta time | Cell | Cell |
-| Variable delta time | Cell | Cell |
-| Semi-fixed timestep | Cell | Cell | 
-| Fixed timestep | Cell | Cell | 
-
-## Results table
-
-| Type of Timestep | Determinism | Visual accuracy |
-|--------|--------|--------|
-| No delta time | Cell | Cell |
-| Variable delta time | Cell | Cell |
-| Semi-fixed timestep | Cell | Cell | 
-| Fixed timestep | Cell | Cell | 
+For more information, see [`wgpu::PresentMode`](https://docs.rs/wgpu/latest/wgpu/enum.PresentMode.html)
