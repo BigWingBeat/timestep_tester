@@ -172,7 +172,7 @@ impl Default for UpdateCadenceGraphConfig {
             enabled: true,
             min_fps: 30.0,
             target_fps: 60.0,
-            max_schedule_runs: 3,
+            max_schedule_runs: 6,
         }
     }
 }
