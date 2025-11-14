@@ -10,9 +10,12 @@ use bevy::{
 };
 use bitflags::Flags;
 
-use crate::configuration::{
-    ActiveTimesteps, AppExt, CommandsExt, DespawnSystems, SimulationMeta, Timestep,
-    TimesteppedSystems,
+use crate::{
+    configuration::{
+        ActiveTimesteps, AppExt, CommandsExt, DespawnSystems, SimulationMeta, Timestep,
+        TimesteppedSystems,
+    },
+    interpolation::SimulationTransform,
 };
 
 #[derive(Resource)]
@@ -117,6 +120,7 @@ fn spawn(
         &timestep.0,
         (
             Cursor,
+            SimulationTransform::default(),
             Mesh3d(mesh.0.clone()),
             MeshMaterial3d(material.0[timestep.index()].clone()),
             RenderLayers::layer(RENDER_LAYER),
@@ -125,7 +129,7 @@ fn spawn(
 }
 
 fn move_cursor<T: Component>(
-    mut cursor: Single<&mut Transform, (With<Cursor>, With<T>)>,
+    mut cursor: Single<&mut SimulationTransform, (With<Cursor>, With<T>)>,
     window: Single<&Window, With<PrimaryWindow>>,
     camera: Single<(&Camera, &GlobalTransform), With<Camera2d>>,
 ) {

@@ -1,37 +1,30 @@
 use std::time::Duration;
 
 use bevy::{
-    ecs::system::{IntoObserverSystem, ObserverSystem},
-    feathers::controls::{SliderProps, checkbox, radio, slider},
+    feathers::controls::{SliderProps, radio, slider},
     prelude::*,
     ui::Checked,
     ui_widgets::{RadioGroup, SliderPrecision, SliderValue, ValueChange, observe},
 };
 
 use crate::{
-    configuration::{ActiveSimulation, ActiveTimesteps, respawn},
-    timestep::SimulationDelta,
+    configuration::{ActiveSimulation, respawn},
     ui::{SLIDER_PRECISION, describe},
 };
 
-fn toggle_timestep(timestep: ActiveTimesteps) -> impl ObserverSystem<ValueChange<bool>, ()> {
-    IntoObserverSystem::into_system(
-        move |on: On<ValueChange<bool>>,
-              mut active_timesteps: ResMut<ActiveTimesteps>,
-              mut commands: Commands| {
-            active_timesteps.set(timestep, on.value);
-            if on.value {
-                commands.entity(on.source).insert(Checked);
-            } else {
-                commands.entity(on.source).remove::<Checked>();
-            }
-            commands.run_system_cached(respawn);
-        },
-    )
-}
-
 #[derive(Component)]
 struct SimulationRadioButton(ActiveSimulation);
+
+#[derive(Resource, Default)]
+struct LagConfig {
+    frames_delay: u32,
+    lag_duration_ms: u64,
+}
+
+pub(super) fn plugin(app: &mut App) {
+    app.init_resource::<LagConfig>()
+        .add_systems(Update, lag_system);
+}
 
 pub fn simulation() -> impl Bundle {
     (
@@ -53,28 +46,6 @@ pub fn simulation() -> impl Bundle {
             },
         ),
         children![
-            describe(
-                Text::new("Simulation Rate:"),
-                "The reciprocal of the fixed delta time value used by the different simulation modes, measured in Hz (updates per second)."
-            ),
-            slider(
-                SliderProps {
-                    value: 64.0,
-                    min: 1.0,
-                    max: SLIDER_PRECISION
-                },
-                (
-                    SliderPrecision(0),
-                    observe(
-                        |on: On<ValueChange<f32>>,
-                         mut commands: Commands,
-                         mut simulation_delta: ResMut<SimulationDelta>| {
-                            commands.entity(on.source).insert(SliderValue(on.value));
-                            simulation_delta.0 = Duration::from_secs_f32(on.value.recip());
-                        }
-                    )
-                ),
-            ),
             Text::new("Switch Active Simulation:"),
             describe(
                 radio(
@@ -100,38 +71,65 @@ pub fn simulation() -> impl Bundle {
                 ),
                 "High-contrast vertical bars, useful for visualising screen tearing and stuttering."
             ),
-            Text::new("Timestep Toggles:"),
             describe(
-                checkbox(
-                    observe(toggle_timestep(ActiveTimesteps::NO_DELTA)),
-                    Spawn(Text::new("No Delta Time"))
-                ),
-                "Updates once every render frame, with a fixed delta time value. Simulation speed is proportional to framerate."
+                Text::new("Artificial Lag:"),
+                "Fake a heavier computational load to manually slow the app down."
             ),
             describe(
-                checkbox(
-                    observe(toggle_timestep(ActiveTimesteps::VARIABLE_DELTA)),
-                    Spawn(Text::new("Variable Delta Time"))
+                Text::new("Lag Frequency"),
+                "How many frames to wait between each lag frame."
+            ),
+            slider(
+                SliderProps {
+                    value: 0.0,
+                    min: 0.0,
+                    max: SLIDER_PRECISION
+                },
+                (
+                    SliderPrecision(0),
+                    observe(
+                        |on: On<ValueChange<f32>>,
+                         mut commands: Commands,
+                         mut config: ResMut<LagConfig>| {
+                            commands.entity(on.source).insert(SliderValue(on.value));
+                            config.frames_delay = on.value as u32;
+                        }
+                    )
                 ),
-                "Updates once every render frame, with a dynamic delta time value. Unaffected by the configured Simulation Rate."
             ),
             describe(
-                checkbox(
-                    (
-                        Checked,
-                        observe(toggle_timestep(ActiveTimesteps::SEMI_FIXED)),
-                    ),
-                    Spawn(Text::new("Semi-Fixed Timestep"))
-                ),
-                "Updates one or more times per frame, with a dynamic delta time value, that is capped by the configured Simulation Rate."
+                Text::new("Lag Duration"),
+                "Extra time in milliseconds to wait for, on each lag frame."
             ),
-            describe(
-                checkbox(
-                    observe(toggle_timestep(ActiveTimesteps::FIXED)),
-                    Spawn(Text::new("Fixed Timestep"))
+            slider(
+                SliderProps {
+                    value: 0.0,
+                    min: 0.0,
+                    max: SLIDER_PRECISION
+                },
+                (
+                    SliderPrecision(0),
+                    observe(
+                        |on: On<ValueChange<f32>>,
+                         mut commands: Commands,
+                         mut config: ResMut<LagConfig>| {
+                            commands.entity(on.source).insert(SliderValue(on.value));
+                            config.lag_duration_ms = on.value as u64;
+                        }
+                    )
                 ),
-                "Updates zero or more times per frame, with a fixed delta time value. Causes visual stuttering."
-            )
+            ),
         ],
     )
+}
+
+fn lag_system(config: Res<LagConfig>, mut counter: Local<u32>) {
+    if *counter >= config.frames_delay {
+        *counter = 0;
+
+        let duration = Duration::from_millis(config.lag_duration_ms);
+        spin_sleep::sleep(duration);
+    } else {
+        *counter += 1;
+    }
 }

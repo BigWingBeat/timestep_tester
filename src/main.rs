@@ -9,6 +9,7 @@ use crate::{
 };
 
 mod configuration;
+mod interpolation;
 mod simulation;
 mod timestep;
 mod ui;
@@ -32,6 +33,7 @@ fn main() -> AppExit {
             lorenz_attractor_plugin,
             mouse_cursor_plugin,
             moving_bars_plugin,
+            interpolation::plugin,
             timestep::plugin,
             ui::plugin,
             update_cadence::UpdateCadencePlugin::default().add_schedule(SemiFixed),

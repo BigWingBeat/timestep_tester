@@ -9,9 +9,12 @@ use bevy::{
     window::PrimaryWindow,
 };
 
-use crate::configuration::{
-    ActiveTimesteps, AppExt, CommandsExt, DespawnSystems, SimulationMeta, Timestep,
-    TimestepComponent, TimesteppedSystems,
+use crate::{
+    configuration::{
+        ActiveTimesteps, AppExt, CommandsExt, DespawnSystems, SimulationMeta, Timestep,
+        TimestepComponent, TimesteppedSystems,
+    },
+    interpolation::SimulationTransform,
 };
 
 #[derive(Resource)]
@@ -84,7 +87,7 @@ fn spawn(timestep: In<Timestep>, mut commands: Commands) {
         commands.spawn_with_timestep(
             &timestep.0,
             (
-                Transform::from_xyz(x, 0.0, 1.0),
+                SimulationTransform::from_xyz(x, 0.0, 1.0),
                 RenderLayers::layer(RENDER_LAYER),
                 Sprite::from_color(colour, Vec2::splat(WIDTH)),
                 Bar,
@@ -94,7 +97,7 @@ fn spawn(timestep: In<Timestep>, mut commands: Commands) {
 }
 
 fn run<T: TimestepComponent>(
-    mut bars: Query<(&mut Transform, &mut Sprite), (With<Bar>, With<T>)>,
+    mut bars: Query<(&mut SimulationTransform, &mut Sprite), (With<Bar>, With<T>)>,
     window: Single<&Window, With<PrimaryWindow>>,
     active_timesteps: Res<ActiveTimesteps>,
     time: Res<Time>,
