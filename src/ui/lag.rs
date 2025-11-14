@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 use bevy::{
     feathers::controls::{SliderProps, slider},
@@ -77,10 +77,7 @@ fn lag_system(config: Res<LagConfig>, mut counter: Local<u32>) {
         *counter = 0;
 
         let duration = Duration::from_millis(config.lag_duration_ms);
-        let now = Instant::now();
-        while now.elapsed() < duration {
-            std::hint::spin_loop();
-        }
+        spin_sleep::sleep(duration);
     } else {
         *counter += 1;
     }

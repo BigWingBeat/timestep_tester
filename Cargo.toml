@@ -20,3 +20,4 @@ bevy = { version = "0.17", default-features = false, features = [
 ] }
 bitflags = { version = "2.9", features = ["std"] }
 num_enum = "0.7"
+spin_sleep = "1.3"
