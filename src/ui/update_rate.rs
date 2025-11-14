@@ -312,7 +312,7 @@ where
                     ),
                     Spawn(Text::new("Device Events"))
                 ),
-                "Reacts to device events not associated with any particular window, including (but not limited to) any mouse movement anywhere. Reacts even if the window is not in focus."
+                "Reacts to device events not associated with any particular window, regardless of input focus. See winit::event::DeviceEvent for more information."
             ),
             describe(
                 checkbox(
@@ -334,7 +334,7 @@ where
                     ),
                     Spawn(Text::new("Window Events"))
                 ),
-                "Reacts to window events, including (but not limited to) the window being moved or resized, or the mouse moving while on top of the window."
+                "Reacts to window events. See winit::event::WindowEvent for more information."
             ),
         ],
     )

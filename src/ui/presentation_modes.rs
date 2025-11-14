@@ -63,7 +63,10 @@ pub fn presentation_modes() -> impl Bundle {
                 },
             ),
             children![
-                Text::new("Switch Window Presentation Mode:"),
+                describe(
+                    Text::new("Switch Window Presentation Mode:"),
+                    "See wgpu::PresentMode for more information."
+                ),
                 describe(
                     radio(
                         WindowPresentMode(PresentMode::AutoVsync),
@@ -134,7 +137,10 @@ pub fn presentation_modes() -> impl Bundle {
                 },
             ),
             children![
-                Text::new("Switch Fullscreen mode:"),
+                describe(
+                    Text::new("Switch Fullscreen mode:"),
+                    "See bevy::window::WindowMode for more information."
+                ),
                 radio(
                     (Checked, FullscreenMode::Windowed),
                     Spawn(Text::new("Windowed"))
