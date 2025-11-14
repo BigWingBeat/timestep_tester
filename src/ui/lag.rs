@@ -6,7 +6,7 @@ use bevy::{
     ui_widgets::{SliderPrecision, SliderValue, ValueChange, observe},
 };
 
-use crate::ui::describe;
+use crate::ui::{SLIDER_PRECISION, describe};
 
 #[derive(Resource, Default)]
 struct LagConfig {
@@ -33,7 +33,7 @@ pub fn lag() -> impl Bundle {
             SliderProps {
                 value: 0.0,
                 min: 0.0,
-                max: 1000.0
+                max: SLIDER_PRECISION
             },
             (
                 SliderPrecision(0),
@@ -55,7 +55,7 @@ pub fn lag() -> impl Bundle {
             SliderProps {
                 value: 0.0,
                 min: 0.0,
-                max: 1000.0
+                max: SLIDER_PRECISION
             },
             (
                 SliderPrecision(0),

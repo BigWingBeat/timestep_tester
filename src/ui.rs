@@ -21,6 +21,10 @@ use crate::ui::{
 const GAP_SIZE: Val = Val::Px(12.0);
 const MAX_WIDTH: Val = Val::Px(720.0);
 
+/// Largest range sliders can have without skipping over some integers.
+/// Equal to `(MAX_WIDTH / 2.0) + (GAP_SIZE * 2.0)`
+const SLIDER_PRECISION: f32 = 336.0;
+
 /// Add a description below a node
 fn describe(node: impl Bundle, description: impl Into<String>) -> impl Bundle {
     (

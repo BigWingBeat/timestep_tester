@@ -5,13 +5,13 @@ use bevy::{
     feathers::controls::{SliderProps, checkbox, radio, slider},
     prelude::*,
     ui::Checked,
-    ui_widgets::{RadioGroup, SliderValue, ValueChange, observe},
+    ui_widgets::{RadioGroup, SliderPrecision, SliderValue, ValueChange, observe},
 };
 
 use crate::{
     configuration::{ActiveSimulation, ActiveTimesteps, respawn},
     timestep::SimulationDelta,
-    ui::describe,
+    ui::{SLIDER_PRECISION, describe},
 };
 
 fn toggle_timestep(timestep: ActiveTimesteps) -> impl ObserverSystem<ValueChange<bool>, ()> {
@@ -61,15 +61,18 @@ pub fn simulation() -> impl Bundle {
                 SliderProps {
                     value: 64.0,
                     min: 1.0,
-                    max: 1000.0
+                    max: SLIDER_PRECISION
                 },
-                observe(
-                    |on: On<ValueChange<f32>>,
-                     mut commands: Commands,
-                     mut simulation_delta: ResMut<SimulationDelta>| {
-                        commands.entity(on.source).insert(SliderValue(on.value));
-                        simulation_delta.0 = Duration::from_secs_f32(on.value.recip());
-                    }
+                (
+                    SliderPrecision(0),
+                    observe(
+                        |on: On<ValueChange<f32>>,
+                         mut commands: Commands,
+                         mut simulation_delta: ResMut<SimulationDelta>| {
+                            commands.entity(on.source).insert(SliderValue(on.value));
+                            simulation_delta.0 = Duration::from_secs_f32(on.value.recip());
+                        }
+                    )
                 ),
             ),
             Text::new("Switch Active Simulation:"),
